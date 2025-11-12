@@ -43,7 +43,6 @@ Route::get('/api/mentors/by-bagian/{bagianId}', [MentorController::class, 'getMe
 // laporan_harian
 Route::resource('laporan_harian', LaporanHarianController::class);
 Route::get('/laporan_harian/create/{penugasan_id?}', [LaporanHarianController::class, 'create'])->name('laporan_harian.create');
-Route::delete('/laporan-harian/{id}', [LaporanHarianController::class, 'destroy'])->name('laporan-harian.destroy');
 
 // penugasan
 Route::resource('penugasans', PenugasanController::class);
@@ -68,17 +67,16 @@ Route::patch('/laporan-akhir/{laporanAkhir}/status', [LaporanAkhirController::cl
 // Route resource untuk CRUD utama
 Route::resource('repository', RepositoryController::class);
 // Route tambahan untuk publish/unpublish (hanya untuk admin)
-Route::post('/repository/{id}/publish', [RepositoryController::class, 'publish'])
+Route::patch('/repository/{id}/publish', [RepositoryController::class, 'publish'])
     ->name('repository.publish')
     ->middleware('isAdmin');
-Route::post('/repository/{id}/unpublish', [RepositoryController::class, 'unpublish'])
+Route::patch('/repository/{id}/unpublish', [RepositoryController::class, 'unpublish'])
     ->name('repository.unpublish')
     ->middleware('isAdmin');
 
 // users
 Route::resource('users', UserController::class)->middleware('isAdmin');
 Route::post('users-update-role', [UserController::class, 'updateRole'])->name('users.update-role');
-Route::post('users-sync-all', [UserController::class, 'syncAllUserData'])->name('users.sync-all')->middleware('isAdmin');
 // bagian
 Route::resource('bagian', BagianController::class);
 

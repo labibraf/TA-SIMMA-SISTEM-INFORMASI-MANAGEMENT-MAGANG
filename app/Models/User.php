@@ -50,6 +50,36 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * Boot model events
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Event ketika user diupdate
+        static::updated(function ($user) {
+            // Cek apakah nama atau email yang berubah
+            if ($user->isDirty('name') || $user->isDirty('email')) {
+                // Sinkronisasi dengan tabel peserta jika ada relasi
+                if ($user->peserta) {
+                    $user->peserta->updateQuietly([
+                        'nama_lengkap' => $user->name,
+                        'email' => $user->email,
+                    ]);
+                }
+
+                // Sinkronisasi dengan tabel mentor jika ada relasi
+                if ($user->mentor) {
+                    $user->mentor->updateQuietly([
+                        'nama_mentor' => $user->name,
+                        'email' => $user->email,
+                    ]);
+                }
+            }
+        });
+    }
+
     public function role()
     {
         return $this->belongsTo(Role::class);
@@ -86,28 +116,6 @@ class User extends Authenticatable
             return strtolower($this->role->role_name) === 'mentor';
         }
         return false;
-    }
-
-    /**
-     * Sinkronisasi nama dan email dengan tabel terkait
-     */
-    public function syncProfileData()
-    {
-        // Sinkronisasi dengan tabel peserta
-        if ($this->peserta) {
-            $this->peserta->update([
-                'nama_lengkap' => $this->name,
-                'email' => $this->email,
-            ]);
-        }
-
-        // Sinkronisasi dengan tabel mentor
-        if ($this->mentor) {
-            $this->mentor->update([
-                'nama_mentor' => $this->name,
-                'email' => $this->email,
-            ]);
-        }
     }
 
     /**
@@ -176,22 +184,22 @@ class User extends Authenticatable
             return [
                 'bagian' => $bagianName,
                 'type' => 'peserta',
-                'icon' => 'fas fa-user-graduate',
-                'color' => 'blue-800'
+                'icon' => 'ti ti-school',
+                'color' => 'primary'
             ];
         } elseif ($this->mentor && $bagianName) {
             return [
                 'bagian' => $bagianName,
                 'type' => 'mentor',
-                'icon' => 'fas fa-user-tie',
-                'color' => 'red-700'
+                'icon' => 'ti ti-user-star',
+                'color' => 'danger'
             ];
         }
 
         return [
             'bagian' => 'Belum Ada Departemen',
             'type' => 'user',
-            'icon' => 'fas fa-user',
+            'icon' => 'ti ti-building',
             'color' => 'secondary'
         ];
     }

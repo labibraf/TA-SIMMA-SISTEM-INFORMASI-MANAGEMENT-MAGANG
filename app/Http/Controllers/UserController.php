@@ -52,34 +52,13 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email,' . $id,
         ]);
 
-        // Update user
+        // Update user - sinkronisasi otomatis dihandle oleh boot() method di User model
         $user->update([
             'name' => $request->name,
             'email' => $request->email,
         ]);
 
-        // Sinkronisasi otomatis dengan tabel terkait
-        $user->syncProfileData();
-
-        Alert::success('Success', 'Data user berhasil diperbarui dan disinkronisasi dengan profil terkait');
-        return redirect()->route('users.index');
-    }
-
-    /**
-     * Sinkronisasi semua data user dengan profil terkait
-     * Method ini bisa dipanggil untuk memperbaiki data yang tidak sinkron
-     */
-    public function syncAllUserData()
-    {
-        $users = User::with(['peserta', 'mentor'])->get();
-        $synced = 0;
-
-        foreach ($users as $user) {
-            $user->syncProfileData();
-            $synced++;
-        }
-
-        Alert::success('Success', "Berhasil menyinkronisasi {$synced} data user dengan profil terkait");
+        Alert::success('Success', 'Data user berhasil diperbarui');
         return redirect()->route('users.index');
     }
 }

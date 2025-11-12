@@ -5,7 +5,7 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h2 class="text-center">Daftar Mentor</h2>
             <a href="{{ route('mentor.create') }}" class="btn btn-primary">
-                (+) Tambah Mentor
+                <i class="ti ti-plus"></i> Tambah Mentor
             </a>
         </div>
         <div class="card-body">

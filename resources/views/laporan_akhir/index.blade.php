@@ -68,10 +68,55 @@
                                     </div>
                                 </div>
 
+                                {{-- Tampilkan tugas yang belum selesai --}}
+                                @if(isset($alasanTidakBisa['tugas_belum_selesai']) && $alasanTidakBisa['jumlah_tugas_belum_selesai'] > 0)
+                                    <div class="alert alert-warning mb-3">
+                                        <h6 class="alert-heading mb-2">
+                                            <i class="ti ti-alert-circle me-2"></i>
+                                            Tugas yang Belum Selesai ada ({{ $alasanTidakBisa['jumlah_tugas_belum_selesai'] }}) Tugas
+                                        </h6>
+                                        <p class="mb-2 medium">Anda masih memiliki tugas yang belum selesai dan/atau belum di-approve. Selesaikan semua tugas terlebih dahulu:</p>
+                                        <ul class="mb-0 ps-3">
+                                            @foreach($alasanTidakBisa['tugas_belum_selesai'] as $tugas)
+                                                <li class="mb-2">
+                                                    <strong>{{ $tugas->judul_tugas }}</strong>
+                                                    <div class="mt-1">
+                                                        <span class="badge bg-{{ $tugas->kategori === 'Individu' ? 'primary' : 'info' }} me-1">
+                                                            {{ $tugas->kategori }}
+                                                        </span>
+                                                        <span class="badge bg-{{ $tugas->status_tugas === 'Selesai' ? 'success' : ($tugas->status_tugas === 'Dikerjakan' ? 'warning' : 'secondary') }} me-1">
+                                                            Status: {{ $tugas->status_tugas }}
+                                                        </span>
+                                                        @if($tugas->status_tugas === 'Selesai')
+                                                            @if($tugas->is_approved == 1)
+                                                                <span class="badge bg-success">✓ Approved</span>
+                                                            @else
+                                                                <span class="badge bg-warning">⏳ Menunggu Approval</span>
+                                                            @endif
+                                                        @endif
+                                                        <span class="text-muted ms-2">
+                                                            | Beban: {{ $tugas->beban_waktu ?? 0 }} jam
+                                                        </span>
+                                                        <div class="text-muted mt-1">
+                                                            <a href="{{ route('penugasans.show', $tugas->id) }}" class="text-decoration-none">
+                                                                <i class="ti ti-eye me-1"></i>Lihat Detail
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                @endif
+
                                 <div class="alert alert-info mb-0">
                                     <i class="ti ti-bulb me-2"></i>
-                                    <strong>Tips:</strong> Selesaikan tugas-tugas yang diberikan untuk mencapai target minimum.
-                                    Setiap tugas yang diselesaikan akan menambah jam tercapai Anda.
+                                    <strong>Syarat Membuat Laporan Akhir:</strong>
+                                    <ol class="mb-0 mt-2 ps-3">
+                                        <li>Mencapai target minimum jam magang ({{ number_format($alasanTidakBisa['target'], 1) }} jam)</li>
+                                        <li>Menyelesaikan <strong>SEMUA</strong> tugas yang ditugaskan kepada Anda</li>
+                                        <li>Semua tugas harus sudah di-<strong>approve</strong> oleh mentor</li>
+                                    </ol>
                                 </div>
                             </div>
                         </div>

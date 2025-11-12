@@ -6,75 +6,160 @@
     .card-grad-pink   { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
     .card-grad-blue   { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
     .card-grad-rose   { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .input-group-text {
+        border-right: 0;
+    }
+
+    .input-group .form-control {
+        border-left: 0;
+    }
+
+    .input-group-text,
+    .input-group .form-control {
+        background-color: #fff;
+    }
+
+    .input-group:focus-within .input-group-text,
+    .input-group:focus-within .form-control {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
 </style>
 
 <div class="">
-    <!-- Compact Filter Section -->
-    <div class="card mb-3">
-        <div class="card-body py-2">
-            <form method="GET" action="{{ route('home') }}" class="row g-2 align-items-end">
-                <div class="col-md-3 col-sm-6">
-                    <label class="form-label mb-1 small"><i class="ti ti-calendar"></i> Tahun</label>
-                    <select name="tahun" class="form-select form-select-sm">
-                        <option value="">Semua Tahun</option>
-                        @foreach($tahunList as $year)
-                            <option value="{{ $year }}" {{ request('tahun') == $year ? 'selected' : '' }}>{{ $year }}</option>
-                        @endforeach
-                    </select>
+    {{-- Header Section --}}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm bg-gradient-primary text-white">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-2 text-white">
+                                <i class="ti ti-dashboard me-2"></i>Dashboard Admin
+                            </h2>
+                            <p class="mb-0 mt-2 opacity-80">Monitoring & Statistik Peserta Magang (Berdasarkan Periode Magang)</p>
+                        </div>
+                        <div>
+                            <span class="badge bg-white text-primary fs-5 px-4 py-2">
+                                <i class="ti ti-calendar me-2"></i>{{ now()->format('d M Y') }}
+                            </span>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-2 col-sm-6">
-                    <label class="form-label mb-1 small"><i class="ti ti-calendar-event"></i> Bulan</label>
-                    <select name="bulan" class="form-select form-select-sm" id="bulanFilter">
-                        <option value="">Semua</option>
-                        <option value="1" {{ request('bulan') == '1' ? 'selected' : '' }}>Jan</option>
-                        <option value="2" {{ request('bulan') == '2' ? 'selected' : '' }}>Feb</option>
-                        <option value="3" {{ request('bulan') == '3' ? 'selected' : '' }}>Mar</option>
-                        <option value="4" {{ request('bulan') == '4' ? 'selected' : '' }}>Apr</option>
-                        <option value="5" {{ request('bulan') == '5' ? 'selected' : '' }}>Mei</option>
-                        <option value="6" {{ request('bulan') == '6' ? 'selected' : '' }}>Jun</option>
-                        <option value="7" {{ request('bulan') == '7' ? 'selected' : '' }}>Jul</option>
-                        <option value="8" {{ request('bulan') == '8' ? 'selected' : '' }}>Agu</option>
-                        <option value="9" {{ request('bulan') == '9' ? 'selected' : '' }}>Sep</option>
-                        <option value="10" {{ request('bulan') == '10' ? 'selected' : '' }}>Okt</option>
-                        <option value="11" {{ request('bulan') == '11' ? 'selected' : '' }}>Nov</option>
-                        <option value="12" {{ request('bulan') == '12' ? 'selected' : '' }}>Des</option>
-                    </select>
-                </div>
-                <div class="col-md-5 col-sm-8">
-                    <label class="form-label mb-1 small"><i class="ti ti-search"></i> Cari Peserta</label>
-                    <input type="text" name="search" class="form-control form-control-sm"
-                           placeholder="Nama, NIM, atau Instansi..." value="{{ request('search') }}">
-                </div>
-                <div class="col-md-2 col-sm-4">
-                    <button type="submit" class="btn btn-primary btn-sm w-100">
-                        <i class="ti ti-filter"></i> Filter
-                    </button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 
-    <!-- Filter Info Badge -->
-    @if(request('tahun') || request('bulan') || request('search'))
-        <div class="alert alert-info alert-dismissible fade show py-2 mb-3" role="alert">
-            <small>
-                <i class="ti ti-info-circle"></i> <strong>Filter:</strong>
-                @if(request('tahun'))
-                    <span class="badge bg-primary">Tahun: {{ request('tahun') }}</span>
-                @endif
-                @if(request('bulan'))
-                    @php
-                        $bulanNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-                        $bulanName = $bulanNames[request('bulan')] ?? request('bulan');
-                    @endphp
-                    <span class="badge bg-primary">Bulan: {{ $bulanName }}</span>
-                @endif
-                @if(request('search'))
-                    <span class="badge bg-primary">Cari: "{{ request('search') }}"</span>
-                @endif
-                | Ditemukan: <strong>{{ $totalPeserta }}</strong> peserta
-            </small>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    {{-- Filter & Search Section --}}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <form method="GET" action="{{ route('home') }}" id="filterForm">
+                        <i class="fas fa-info-circle mb-3"></i> Filter bedasarkan Peserta Magang
+                        <div class="row g-3">
+                            {{-- Filter Tahun --}}
+                            <div class="col-md-3">
+                                <select name="tahun" class="form-select" id="tahunFilter">
+                                    <option value="">Semua Tahun Magang</option>
+                                    @foreach($tahunList as $year)
+                                        <option value="{{ $year }}" {{ request('tahun') == $year ? 'selected' : '' }}>
+                                            {{ $year }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            {{-- Filter Bulan --}}
+                            <div class="col-md-3">
+                                <select name="bulan" class="form-select" id="bulanFilter">
+                                    <option value="">Semua Bulan Magang</option>
+                                    <option value="1" {{ request('bulan') == '1' ? 'selected' : '' }}>Januari</option>
+                                    <option value="2" {{ request('bulan') == '2' ? 'selected' : '' }}>Februari</option>
+                                    <option value="3" {{ request('bulan') == '3' ? 'selected' : '' }}>Maret</option>
+                                    <option value="4" {{ request('bulan') == '4' ? 'selected' : '' }}>April</option>
+                                    <option value="5" {{ request('bulan') == '5' ? 'selected' : '' }}>Mei</option>
+                                    <option value="6" {{ request('bulan') == '6' ? 'selected' : '' }}>Juni</option>
+                                    <option value="7" {{ request('bulan') == '7' ? 'selected' : '' }}>Juli</option>
+                                    <option value="8" {{ request('bulan') == '8' ? 'selected' : '' }}>Agustus</option>
+                                    <option value="9" {{ request('bulan') == '9' ? 'selected' : '' }}>September</option>
+                                    <option value="10" {{ request('bulan') == '10' ? 'selected' : '' }}>Oktober</option>
+                                    <option value="11" {{ request('bulan') == '11' ? 'selected' : '' }}>November</option>
+                                    <option value="12" {{ request('bulan') == '12' ? 'selected' : '' }}>Desember</option>
+                                </select>
+                            </div>
+
+                            {{-- Filter Departemen/Bagian --}}
+                            <div class="col-md-4">
+                                <select name="bagian" class="form-select">
+                                    <option value="">Semua Departemen</option>
+                                    @foreach($bagianDistribution as $bagianItem)
+                                        <option value="{{ $bagianItem->nama_bagian }}" {{ request('bagian') == $bagianItem->nama_bagian ? 'selected' : '' }}>
+                                            {{ $bagianItem->nama_bagian }} ({{ $bagianItem->peserta_count }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            {{-- Button Search & Reset --}}
+                            <div class="col-md-2">
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary flex-fill">
+                                        <i class="ti ti-filter me-1"></i>Filter
+                                    </button>
+                                    <a href="{{ route('home') }}" class="btn btn-secondary" title="Reset Filter">
+                                        <i class="ti ti-refresh"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Filter Info Badge --}}
+    @if(request('tahun') || request('bulan') || request('bagian'))
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="alert alert-info alert-dismissible fade show mb-0" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="ti ti-info-circle me-2"></i>
+                        <div class="flex-grow-1">
+                            <strong>Filter Aktif:</strong>
+                            @if(request('tahun'))
+                                <span class="badge bg-primary ms-2">
+                                    <i class="ti ti-calendar me-1"></i>Tahun: {{ request('tahun') }}
+                                </span>
+                            @endif
+                            @if(request('bulan'))
+                                @php
+                                    $bulanNames = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                                    $bulanName = $bulanNames[request('bulan')] ?? request('bulan');
+                                @endphp
+                                <span class="badge bg-primary ms-2">
+                                    <i class="ti ti-calendar-event me-1"></i>Bulan: {{ $bulanName }}
+                                </span>
+                            @endif
+                            @if(request('bagian'))
+                                <span class="badge bg-primary ms-2">
+                                    <i class="ti ti-building me-1"></i>Bagian: {{ request('bagian') }}
+                                </span>
+                            @endif
+                            <span class="badge bg-success ms-2">
+                                <i class="ti ti-users me-1"></i>Hasil: {{ $totalPeserta }} Peserta
+                            </span>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                </div>
+            </div>
         </div>
     @endif
 
@@ -127,27 +212,6 @@
                 </div>
             </div>
         </div>
-
-        {{-- <div class="col-md-6 col-xl-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-grow-1">
-                            <h6 class="mb-2 f-w-400 text-muted">Total Jam Magang</h6>
-                            <h4 class="mb-3">{{ number_format($totalJamMagang) }}</h4>
-                            <div class="small text-warning">
-                                <i class="ti ti-clock"></i> Jam Tercapai
-                            </div>
-                        </div>
-                        <div class="flex-shrink-0">
-                            <div class="avtar avtar-xl bg-light-warning">
-                                <i class="ti ti-clock fs-1 text-warning"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> --}}
     </div>
 
     <!-- Status Overview -->
@@ -157,9 +221,15 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Tren Pendaftaran Magang</h5>
                     <div class="dropdown">
-                        <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            6 Bulan Terakhir
+                        <button class="btn btn-sm btn-light dropdown-toggle" type="button" id="trendPeriodDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            {{ $trendPeriod }} Bulan Terakhir
                         </button>
+                        <ul class="dropdown-menu" aria-labelledby="trendPeriodDropdown">
+                            <li><a class="dropdown-item {{ $trendPeriod == 3 ? 'active' : '' }}" href="#" onclick="changeTrendPeriod(3)">3 Bulan Terakhir</a></li>
+                            <li><a class="dropdown-item {{ $trendPeriod == 6 ? 'active' : '' }}" href="#" onclick="changeTrendPeriod(6)">6 Bulan Terakhir</a></li>
+                            <li><a class="dropdown-item {{ $trendPeriod == 9 ? 'active' : '' }}" href="#" onclick="changeTrendPeriod(9)">9 Bulan Terakhir</a></li>
+                            <li><a class="dropdown-item {{ $trendPeriod == 12 ? 'active' : '' }}" href="#" onclick="changeTrendPeriod(12)">12 Bulan Terakhir</a></li>
+                        </ul>
                     </div>
                 </div>
                 <div class="card-body flex-grow-1">
@@ -321,46 +391,7 @@
                 </div>
             </div>
 
-            <!-- Upcoming Completions -->
-            {{-- <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Akan Selesai Magang</h5>
-                </div>
-                <div class="card-body">
-                    @forelse($upcomingCompletions as $peserta)
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="flex-shrink-0">
-                            @if($peserta->foto)
-                            <img src="{{ asset('storage/foto_peserta/'.$peserta->foto) }}"
-                                 class="rounded-circle" width="35" height="35" alt="">
-                            @else
-                            <div class="avtar avtar-s bg-light-warning">
-                                <span>{{ substr($peserta->nama_lengkap, 0, 1) }}</span>
-                            </div>
-                            @endif
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="mb-1">{{ $peserta->nama_lengkap }}</h6>
-                            <small class="text-muted">
-                                {{ \Carbon\Carbon::parse($peserta->tanggal_selesai_magang)->format('d M Y') }}
-                            </small>
-                        </div>
-                        <div class="flex-shrink-0">
-                            <span class="badge bg-{{ $peserta->bisa_laporan_akhir ? 'success' : 'warning' }} rounded-pill">
-                                {{ $peserta->bisa_laporan_akhir ? 'Siap' : 'Proses' }}
-                            </span>
-                        </div>
-                    </div>
-                    @empty
-                    <div class="text-center py-3">
-                        <div class="text-muted">
-                            <i class="ti ti-calendar-time fs-3 d-block mb-2"></i>
-                            Tidak ada yang akan selesai dalam 30 hari
-                        </div>
-                    </div>
-                    @endforelse
-                </div>
-            </div> --}}
+
         </div>
     </div>
 
@@ -382,59 +413,6 @@
             </div>
         </div>
 
-        {{-- <div class="col-xl-6 col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Statistik Bagian</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-borderless mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Bagian</th>
-                                    <th class="text-center">Peserta</th>
-                                    <th class="text-end">Persentase</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($bagianDistribution as $bagian)
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="avtar avtar-s bg-light-primary me-2">
-                                                <i class="ti ti-building"></i>
-                                            </div>
-                                            <span>{{ $bagian->nama_bagian }}</span>
-                                        </div>
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge bg-light-primary rounded-pill">
-                                            {{ $bagian->peserta_count }}
-                                        </span>
-                                    </td>
-                                    <td class="text-end">
-                                        <span class="text-muted">
-                                            {{ $totalPeserta > 0 ? round(($bagian->peserta_count / $totalPeserta) * 100, 1) : 0 }}%
-                                        </span>
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="3" class="text-center py-4">
-                                        <div class="text-muted">
-                                            <i class="ti ti-building fs-3 d-block mb-2"></i>
-                                            Belum ada bagian terdaftar
-                                        </div>
-                                    </td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div> --}}
     </div>
 
     <!-- Pie Charts Section -->
@@ -648,34 +626,6 @@
 
     <!-- Advanced Analytics Section -->
     <div class="row">
-        <!-- Progress Level Distribution -->
-        {{-- <div class="col-xl-4 col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Tingkat Progress Peserta</h5>
-                </div>
-                <div class="card-body">
-                    <div id="progress-level-chart" style="height: 280px;"></div>
-                    <div class="mt-3">
-                        <div class="row text-center">
-                            <div class="col-4">
-                                <h6 class="mb-1 text-danger">{{ $pesertaBaru }}</h6>
-                                <small class="text-muted">Pemula (&lt;25%)</small>
-                            </div>
-                            <div class="col-4">
-                                <h6 class="mb-1 text-warning">{{ $pesertaMenungah }}</h6>
-                                <small class="text-muted">Menengah (25-75%)</small>
-                            </div>
-                            <div class="col-4">
-                                <h6 class="mb-1 text-success">{{ $pesertaMahir }}</h6>
-                                <small class="text-muted">Mahir (&gt;75%)</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> --}}
-
         <!-- Top Institutions -->
         <div class="col-xl-12 col-md-6">
             <div class="card">
@@ -700,30 +650,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Monthly Completions Trend -->
-        {{-- <div class="col-xl-4 col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Tren Penyelesaian Magang</h5>
-                </div>
-                <div class="card-body">
-                    <div id="monthly-completion-chart" style="height: 280px;"></div>
-                    <div class="mt-3 text-center">
-                        <div class="row">
-                            <div class="col-6">
-                                <h6 class="mb-1 text-primary">{{ array_sum(array_column($monthlyCompletions, 'count')) }}</h6>
-                                <small class="text-muted">Total Selesai (6 bulan)</small>
-                            </div>
-                            <div class="col-6">
-                                <h6 class="mb-1 text-success">{{ count($monthlyCompletions) > 0 ? round(array_sum(array_column($monthlyCompletions, 'count')) / count($monthlyCompletions), 1) : 0 }}</h6>
-                                <small class="text-muted">Rata-rata per Bulan</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> --}}
     </div>
 
     <!-- ==================== NEW SECTION A: LINE/AREA CHARTS ==================== -->
@@ -793,32 +719,6 @@
 
     <!-- ==================== NEW SECTION C: ADDITIONAL PIE CHARTS ==================== -->
     <div class="row">
-        {{-- <!-- Task Approval Status Detail -->
-        <div class="col-xl-6 col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="ti ti-check-circle"></i> Status Persetujuan Tugas</h5>
-                </div>
-                <div class="card-body">
-                    <div id="task-approval-detail-chart"></div>
-                    <div class="mt-3">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span><i class="ti ti-circle-filled text-success"></i> Disetujui</span>
-                            <strong>{{ $tugasApproved }}</strong>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span><i class="ti ti-circle-filled text-warning"></i> Pending</span>
-                            <strong>{{ $tugasPending }}</strong>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span><i class="ti ti-circle-filled text-danger"></i> Rejected</span>
-                            <strong>{{ $tugasRejected }}</strong>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> --}}
-
         <!-- Target Method Distribution -->
         <div class="col-xl-12 col-md-6">
             <div class="card">
@@ -942,190 +842,6 @@
             </div>
         </div>
     </div>
-
-    {{-- <!-- Overdue Tasks & Low Performance Alert -->
-    <div class="row">
-        <!-- Overdue Tasks -->
-        <div class="col-xl-6 col-md-12">
-            <div class="card border-danger">
-                <div class="card-header bg-light-danger d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="ti ti-alert-circle text-danger"></i> Tugas Terlambat</h5>
-                    <span class="badge bg-danger">{{ count($overdueTasks) }}</span>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Judul Tugas</th>
-                                    <th>Peserta/Divisi</th>
-                                    <th class="text-center">Deadline</th>
-                                    <th class="text-center">Terlambat</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($overdueTasks as $overdue)
-                                <tr>
-                                    <td>
-                                        <span class="small fw-bold">{{ Str::limit($overdue['judul'], 25) }}</span>
-                                        <br><span class="badge badge-sm bg-{{ $overdue['status'] == 'Berlangsung' ? 'warning' : 'secondary' }}">{{ $overdue['status'] }}</span>
-                                    </td>
-                                    <td><small>{{ Str::limit($overdue['peserta'], 20) }}</small></td>
-                                    <td class="text-center"><small class="text-danger">{{ $overdue['deadline'] }}</small></td>
-                                    <td class="text-center">
-                                        <span class="badge bg-danger">{{ $overdue['days_overdue'] }} hari</span>
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted py-3">
-                                        <i class="ti ti-circle-check fs-3 text-success"></i>
-                                        <p class="mb-0">Tidak ada tugas yang terlambat</p>
-                                    </td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Low Performance Alert -->
-        <div class="col-xl-6 col-md-12">
-            <div class="card border-warning">
-                <div class="card-header bg-light-warning d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="ti ti-alert-triangle text-warning"></i> Performa Rendah (<25%)</h5>
-                    <span class="badge bg-warning">{{ count($lowPerformanceAlert) }}</span>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Peserta</th>
-                                    <th>Bagian</th>
-                                    <th class="text-center">Progress</th>
-                                    <th class="text-center">Sisa Hari</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($lowPerformanceAlert as $alert)
-                                <tr>
-                                    <td>
-                                        <span class="small fw-bold">{{ Str::limit($alert['nama'], 20) }}</span>
-                                        <br><small class="text-muted">{{ $alert['mentor'] }}</small>
-                                    </td>
-                                    <td><small>{{ $alert['bagian'] }}</small></td>
-                                    <td class="text-center">
-                                        <div class="progress" style="height: 20px;">
-                                            <div class="progress-bar bg-danger" role="progressbar"
-                                                 style="width: {{ $alert['progress'] }}%"
-                                                 aria-valuenow="{{ $alert['progress'] }}"
-                                                 aria-valuemin="0" aria-valuemax="100">
-                                                {{ $alert['progress'] }}%
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge bg-{{ $alert['sisa_hari'] < 30 ? 'danger' : 'warning' }}">
-                                            {{ $alert['sisa_hari'] }} hari
-                                        </span>
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted py-3">
-                                        <i class="ti ti-trophy fs-3 text-success"></i>
-                                        <p class="mb-0">Semua peserta menunjukkan performa baik!</p>
-                                    </td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div> --}}
-
-    <!-- Performance Insights -->
-    <div class="row">
-        <!-- Tingkat Keberhasilan -->
-        <div class="col-xl-3 col-md-6">
-            <x-stat-card
-                class="card-grad-indigo"
-                icon="ti-trending-up"
-                title="Tingkat Keberhasilan"
-                :value="$totalPeserta > 0 ? round(($pesertaTargetTercapai / $totalPeserta) * 100, 1) . '%' : '0%'"
-                subtitle="Peserta mencapai target" />
-        </div>
-
-        <!-- Efisiensi Mentor -->
-        <div class="col-xl-3 col-md-6">
-            <x-stat-card
-                class="card-grad-pink"
-                icon="ti-users-group"
-                title="Efisiensi Mentor"
-                :value="$rataRataPesertaPerMentor"
-                subtitle="Peserta per mentor" />
-        </div>
-
-        <!-- Penyelesaian Tugas -->
-        <div class="col-xl-3 col-md-6">
-            <x-stat-card
-                class="card-grad-blue"
-                icon="ti-clipboard-check"
-                title="Penyelesaian Tugas"
-                :value="$totalTugas > 0 ? round(($tugasSelesai / $totalTugas) * 100, 1) . '%' : '0%'"
-                subtitle="Tugas telah selesai" />
-        </div>
-
-        <!-- Laporan Akhir -->
-        <div class="col-xl-3 col-md-6">
-            <x-stat-card
-                class="card-grad-rose"
-                icon="ti-report-analytics"
-                title="Laporan Akhir"
-                :value="$totalPeserta > 0 ? round(($laporanAkhirSelesai / $totalPeserta) * 100, 1) . '%' : '0%'"
-                subtitle="Telah menyelesaikan" />
-        </div>
-    </div>
-
-    <!-- Recommendations -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="ti ti-bulb text-warning"></i> Rekomendasi Berdasarkan Data</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="alert alert-primary" role="alert">
-                                <h6 class="alert-heading"><i class="ti ti-trending-up"></i> Peningkatan Partisipasi</h6>
-                                @if($pesertaBaru > $pesertaMahir)
-                                <p class="mb-0">Terdapat <strong>{{ $pesertaBaru }}</strong> peserta . Pertimbangkan untuk memberikan mentoring intensif atau pelatihan tambahan.</p>
-                                @else
-                                <p class="mb-0">Distribusi progress peserta cukup baik. Pertahankan kualitas pembimbingan saat ini.</p>
-                                @endif
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="alert alert-success" role="alert">
-                                <h6 class="alert-heading"><i class="ti ti-target"></i> Optimasi Sumber Daya</h6>
-                                @if($rataRataPesertaPerMentor > 5)
-                                <p class="mb-0">Beban mentor cukup tinggi (<strong>{{ $rataRataPesertaPerMentor }}</strong> peserta/mentor). Pertimbangkan penambahan mentor.</p>
-                                @else
-                                <p class="mb-0">Rasio mentor-peserta optimal. Fokuskan pada peningkatan kualitas bimbingan.</p>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 @push('styles')
@@ -1186,6 +902,20 @@
 <script src="{{ asset('template/dist/assets/js/plugins/apexcharts.min.js') }}"></script>
 
 <script>
+// Function to change trend period
+function changeTrendPeriod(period) {
+    event.preventDefault();
+
+    // Get current URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+
+    // Set or update trend_period parameter
+    urlParams.set('trend_period', period);
+
+    // Reload page with new parameter
+    window.location.search = urlParams.toString();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Monthly Trend Chart
     const monthlyTrendOptions = {
@@ -1540,52 +1270,6 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     new ApexCharts(document.querySelector("#task-approval-chart"), taskApprovalOptions).render();
 
-    // Progress Level Chart
-    const progressLevelOptions = {
-        series: [{{ $pesertaBaru }}, {{ $pesertaMenungah }}, {{ $pesertaMahir }}],
-        chart: {
-            type: 'donut',
-            height: 280
-        },
-        colors: ['#dc3545', '#ffc107', '#2dce89'],
-        labels: ['Pemula (<25%)', 'Menengah (25-75%)', 'Mahir (>75%)'],
-        legend: {
-            position: 'bottom',
-            fontSize: '11px'
-        },
-        plotOptions: {
-            pie: {
-                donut: {
-                    size: '65%',
-                    labels: {
-                        show: true,
-                        total: {
-                            show: true,
-                            label: 'Total Peserta',
-                            formatter: function () {
-                                return {{ $totalPeserta }}
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        dataLabels: {
-            enabled: true,
-            formatter: function(val) {
-                return Math.round(val) + '%';
-            }
-        },
-        tooltip: {
-            y: {
-                formatter: function (val) {
-                    return val + " peserta"
-                }
-            }
-        }
-    };
-    new ApexCharts(document.querySelector("#progress-level-chart"), progressLevelOptions).render();
-
     // Top Institutions Chart
     const institutionsOptions = {
         series: [{
@@ -1641,63 +1325,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     new ApexCharts(document.querySelector("#institutions-chart"), institutionsOptions).render();
-
-    // Monthly Completion Chart
-    const monthlyCompletionOptions = {
-        series: [{
-            name: 'Peserta Selesai',
-            data: @json(array_column($monthlyCompletions, 'count'))
-        }],
-        chart: {
-            type: 'line',
-            height: 280,
-            toolbar: { show: false }
-        },
-        colors: ['#2dce89'],
-        stroke: {
-            curve: 'smooth',
-            width: 3
-        },
-        markers: {
-            size: 6,
-            colors: ['#2dce89'],
-            strokeColors: '#fff',
-            strokeWidth: 2
-        },
-        fill: {
-            type: 'gradient',
-            gradient: {
-                shade: 'light',
-                type: 'vertical',
-                shadeIntensity: 0.5,
-                gradientToColors: ['#2dce89'],
-                inverseColors: false,
-                opacityFrom: 0.8,
-                opacityTo: 0.1
-            }
-        },
-        dataLabels: { enabled: false },
-        xaxis: {
-            categories: @json(array_column($monthlyCompletions, 'month')),
-            axisBorder: { show: false },
-            axisTicks: { show: false }
-        },
-        yaxis: {
-            title: { text: 'Jumlah Peserta' }
-        },
-        grid: {
-            borderColor: '#f1f1f1',
-            strokeDashArray: 4
-        },
-        tooltip: {
-            y: {
-                formatter: function (val) {
-                    return val + " peserta selesai"
-                }
-            }
-        }
-    };
-    new ApexCharts(document.querySelector("#monthly-completion-chart"), monthlyCompletionOptions).render();
 
     // ==================== NEW CHARTS SECTION A: LINE/AREA CHARTS ====================
 
@@ -1956,54 +1583,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ==================== NEW CHARTS SECTION C: PIE/DONUT ADDITIONS ====================
 
-    // Task Approval Detail Chart - COMMENTED: Variable $tugasRejected not defined
-    /*
-    const taskApprovalDetailOptions = {
-        series: [{{ $tugasApproved }}, {{ $tugasPendingApproval }}, 0],
-        chart: {
-            type: 'donut',
-            height: 250
-        },
-        colors: ['#2dce89', '#ffc107', '#dc3545'],
-        labels: ['Disetujui', 'Pending', 'Rejected'],
-        legend: {
-            position: 'bottom',
-            fontSize: '11px'
-        },
-        plotOptions: {
-            pie: {
-                donut: {
-                    size: '60%',
-                    labels: {
-                        show: true,
-                        total: {
-                            show: true,
-                            label: 'Total',
-                            formatter: function (w) {
-                                return w.globals.seriesTotals.reduce((a, b) => a + b, 0)
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        dataLabels: {
-            enabled: true,
-            formatter: function(val) {
-                return Math.round(val) + '%';
-            }
-        },
-        tooltip: {
-            y: {
-                formatter: function (val) {
-                    return val + " tugas"
-                }
-            }
-        }
-    };
-    // new ApexCharts(document.querySelector("#task-approval-detail-chart"), taskApprovalDetailOptions).render();
-    */
-
     // Target Method Distribution Chart
     const targetMethodOptions = {
         series: [{{ $targetMethodSKS }}, {{ $targetMethodManual }}],
@@ -2032,48 +1611,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     new ApexCharts(document.querySelector("#target-method-chart"), targetMethodOptions).render();
-
-    // ==================== LAZY LOAD HELPER ====================
-    function renderWhenVisible(selector, options) {
-        const el = document.querySelector(selector);
-        if (!el) return;
-
-        const start = () => new ApexCharts(el, options).render();
-
-        if ('IntersectionObserver' in window) {
-            const io = new IntersectionObserver((entries, obs) => {
-                entries.forEach(e => {
-                    if (e.isIntersecting) {
-                        start();
-                        obs.disconnect();
-                    }
-                });
-            }, { rootMargin: '100px' });
-            io.observe(el);
-        } else {
-            start();
-        }
-    }
-
-    // ==================== SAFE DONUT HELPER ====================
-    function safeDonut(series, opts = {}) {
-        const total = series.reduce((a, b) => a + b, 0);
-        const safeSeries = total === 0 ? series.map(() => 0) : series;
-
-        return {
-            ...opts,
-            series: safeSeries,
-            dataLabels: { enabled: total !== 0 },
-            tooltip: {
-                y: {
-                    formatter: val => val + (opts.unit || '')
-                }
-            },
-            noData: {
-                text: total === 0 ? 'Tidak ada data' : undefined
-            }
-        };
-    }
 
     // Filter Enhancement
     const tahunSelect = document.querySelector('select[name="tahun"]');

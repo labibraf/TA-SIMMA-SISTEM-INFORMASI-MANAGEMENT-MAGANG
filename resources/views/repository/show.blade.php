@@ -75,31 +75,61 @@
                             </h5>
                         </div>
                         <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-8">
-                                    <h6 class="mb-2">{{ $repository->laporanAkhir->judul_laporan }}</h6>
-                                    <p class="text-muted mb-2">
-                                        {{ $repository->laporanAkhir->deskripsi_laporan }}
-                                    </p>
-                                    <div class="text-muted small">
-                                        <i class="fas fa-user me-2"></i>
-                                        <strong>Pembimbing:</strong> {{ $repository->laporanAkhir->mentor->nama_mentor ?? 'N/A' }}
+                            @if($repository->laporanAkhir)
+                                {{-- Dari Sistem --}}
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <h6 class="mb-2">{{ $repository->laporanAkhir->judul_laporan }}</h6>
+                                        <p class="text-muted mb-2">
+                                            {{ $repository->laporanAkhir->deskripsi_laporan }}
+                                        </p>
+                                        <div class="text-muted small">
+                                            <i class="fas fa-user me-2"></i>
+                                            <strong>Pembimbing:</strong> {{ $repository->laporanAkhir->mentor->nama_mentor ?? 'N/A' }}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 text-md-end">
+                                        @if($repository->laporanAkhir->file_path)
+                                            <a href="{{ Storage::url($repository->laporanAkhir->file_path) }}"
+                                               target="_blank"
+                                               class="btn btn-primary btn-lg">
+                                                <i class="fas fa-download me-2"></i>Download PDF
+                                            </a>
+                                        @else
+                                            <button class="btn btn-secondary btn-lg" disabled>
+                                                <i class="fas fa-file-excel me-2"></i>File Tidak Tersedia
+                                            </button>
+                                        @endif
                                     </div>
                                 </div>
-                                <div class="col-md-4 text-md-end">
-                                    @if($repository->laporanAkhir->file_path)
-                                        <a href="{{ Storage::url($repository->laporanAkhir->file_path) }}"
+                            @elseif($repository->file_path)
+                                {{-- Dari Upload Manual --}}
+                                <div class="alert alert-info mb-3">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <small>Laporan ini diarsipkan secara manual dari penyimpanan lokal</small>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <h6 class="mb-2">{{ $repository->judul }}</h6>
+                                        <div class="text-muted small">
+                                            <i class="fas fa-user me-2"></i>
+                                            <strong>Peserta:</strong> {{ $repository->nama_peserta }}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 text-md-end">
+                                        <a href="{{ Storage::url($repository->file_path) }}"
                                            target="_blank"
                                            class="btn btn-primary btn-lg">
                                             <i class="fas fa-download me-2"></i>Download PDF
                                         </a>
-                                    @else
-                                        <button class="btn btn-secondary btn-lg" disabled>
-                                            <i class="fas fa-file-excel me-2"></i>File Tidak Tersedia
-                                        </button>
-                                    @endif
+                                    </div>
                                 </div>
-                            </div>
+                            @else
+                                <div class="alert alert-warning mb-0">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    File laporan tidak tersedia
+                                </div>
+                            @endif
                         </div>
                     </div>
 
@@ -154,36 +184,67 @@
                     </h6>
                 </div>
                 <div class="card-body">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="avatar-circle bg-primary text-white me-3">
-                            {{ strtoupper(substr($repository->peserta->nama_lengkap ?? ($repository->peserta->user->name ?? 'N'), 0, 1)) }}
+                    @if($repository->peserta)
+                        {{-- Dari Sistem --}}
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="avatar-circle bg-primary text-white me-3">
+                                {{ strtoupper(substr($repository->peserta->nama_lengkap ?? ($repository->peserta->user->name ?? 'N'), 0, 1)) }}
+                            </div>
+                            <div>
+                                <h6 class="mb-0">{{ $repository->peserta->nama_lengkap ?? ($repository->peserta->user->name ?? 'N/A') }}</h6>
+                                <small class="text-muted">Peserta Magang</small>
+                            </div>
                         </div>
-                        <div>
-                            <h6 class="mb-0">{{ $repository->peserta->nama_lengkap ?? ($repository->peserta->user->name ?? 'N/A') }}</h6>
-                            <small class="text-muted">Peserta Magang</small>
-                        </div>
-                    </div>
 
-                    <div class="border-top pt-3">
-                        <div class="mb-2">
-                            <i class="fas fa-envelope text-muted me-2"></i>
-                            <small>{{ $repository->peserta->email ?? 'N/A' }}</small>
+                        <div class="border-top pt-3">
+                            <div class="mb-2">
+                                <i class="fas fa-envelope text-muted me-2"></i>
+                                <small>{{ $repository->peserta->email ?? 'N/A' }}</small>
+                            </div>
+                            @if($repository->bagian)
+                            <div class="mb-2">
+                                <i class="fas fa-building text-muted me-2"></i>
+                                <small>{{ $repository->bagian }}</small>
+                            </div>
+                            @endif
+                            <div class="mb-2">
+                                <i class="fas fa-calendar text-muted me-2"></i>
+                                <small>Tahun Magang: {{ $repository->tahun_magang }}</small>
+                            </div>
+                            <div>
+                                <i class="fas fa-clock text-muted me-2"></i>
+                                <small>Dipublikasikan: {{ $repository->published_at ? $repository->published_at->format('d M Y') : '-' }}</small>
+                            </div>
                         </div>
-                        @if($repository->bagian)
-                        <div class="mb-2">
-                            <i class="fas fa-building text-muted me-2"></i>
-                            <small>{{ $repository->bagian }}</small>
+                    @else
+                        {{-- Dari Upload Manual --}}
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="avatar-circle bg-success text-white me-3">
+                                {{ strtoupper(substr($repository->nama_peserta ?? 'N', 0, 1)) }}
+                            </div>
+                            <div>
+                                <h6 class="mb-0">{{ $repository->nama_peserta ?? 'N/A' }}</h6>
+                                <small class="text-muted">Peserta Magang (Arsip)</small>
+                            </div>
                         </div>
-                        @endif
-                        <div class="mb-2">
-                            <i class="fas fa-calendar text-muted me-2"></i>
-                            <small>Tahun Magang: {{ $repository->tahun_magang }}</small>
+
+                        <div class="border-top pt-3">
+                            @if($repository->bagian)
+                            <div class="mb-2">
+                                <i class="fas fa-building text-muted me-2"></i>
+                                <small>{{ $repository->bagian }}</small>
+                            </div>
+                            @endif
+                            <div class="mb-2">
+                                <i class="fas fa-calendar text-muted me-2"></i>
+                                <small>Tahun Magang: {{ $repository->tahun_magang }}</small>
+                            </div>
+                            <div>
+                                <i class="fas fa-clock text-muted me-2"></i>
+                                <small>Dipublikasikan: {{ $repository->published_at ? $repository->published_at->format('d M Y') : '-' }}</small>
+                            </div>
                         </div>
-                        <div>
-                            <i class="fas fa-clock text-muted me-2"></i>
-                            <small>Dipublikasikan: {{ $repository->published_at ? $repository->published_at->format('d M Y') : '-' }}</small>
-                        </div>
-                    </div>
+                    @endif
                 </div>
             </div>
 

@@ -20,10 +20,6 @@ class RepositoryController extends Controller
         $this->repositoryRepo = $repositoryRepo;
     }
 
-    /**
-     * Display a listing of the resource.
-     * Halaman utama repository (publik)
-     */
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -33,24 +29,56 @@ class RepositoryController extends Controller
         $category = $request->get('category');
         $bagian = $request->get('bagian');
         $search = $request->get('search');
+        $status = $request->get('status'); // draft atau published
 
-        // Ambil data repository berdasarkan filter
-        if ($search) {
-            $repositories = $this->repositoryRepo->search($search);
-        } elseif ($year) {
-            $repositories = $this->repositoryRepo->getByYear($year);
-        } elseif ($category) {
-            $repositories = $this->repositoryRepo->getByCategory($category);
-        } elseif ($bagian) {
-            $repositories = $this->repositoryRepo->getByBagian($bagian);
-        } else {
-            // Admin bisa lihat semua (termasuk draft), user lain hanya published
-            if ($user && $user->isAdmin()) {
-                $repositories = $this->repositoryRepo->getAll();
-            } else {
-                $repositories = $this->repositoryRepo->getAllPublished();
+        // Build query
+        $query = \App\Models\Repository::with(['laporanAkhir', 'peserta.user', 'peserta.bagian']);
+
+        // Filter berdasarkan status (Admin only)
+        if ($user && $user->isAdmin() && $status) {
+            if ($status === 'published') {
+                $query->where('is_published', true);
+            } elseif ($status === 'draft') {
+                $query->where('is_published', false);
             }
+        } elseif (!$user->isAdmin()) {
+            // Non-admin hanya lihat published
+            $query->where('is_published', true);
         }
+
+        // Filter berdasarkan tahun
+        if ($year) {
+            $query->where('tahun_magang', $year);
+        }
+
+        // Filter berdasarkan kategori
+        if ($category) {
+            $query->where('kategori', $category);
+        }
+
+        // Filter berdasarkan bagian
+        if ($bagian) {
+            $query->where('bagian', $bagian);
+        }
+
+        // Filter berdasarkan search
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('judul', 'like', "%{$search}%")
+                  ->orWhere('deskripsi', 'like', "%{$search}%")
+                  ->orWhere('deskripsi_lengkap', 'like', "%{$search}%")
+                  ->orWhere('kategori', 'like', "%{$search}%");
+            });
+        }
+
+        // Order by
+        if ($user && $user->isAdmin()) {
+            $query->orderBy('is_published', 'asc')->orderBy('created_at', 'desc');
+        } else {
+            $query->orderBy('published_at', 'desc');
+        }
+
+        $repositories = $query->get();
 
         // Ambil data untuk filter dropdown
         $years = DB::table('repositories')
@@ -83,7 +111,6 @@ class RepositoryController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
      * Form untuk membuat repository dari laporan akhir yang sudah di-ACC
      */
     public function create(Request $request)
@@ -95,7 +122,7 @@ class RepositoryController extends Controller
         }
 
         // Ambil laporan akhir yang sudah di-ACC tapi belum ada di repository
-        $laporanAkhirs = LaporanAkhir::where('status', 'diterima')
+        $laporanAkhirs = LaporanAkhir::where('status', 'terima')
             ->whereNotIn('id', function($query) {
                 $query->select('laporan_akhir_id')
                     ->from('repositories');
@@ -130,28 +157,73 @@ class RepositoryController extends Controller
             return redirect()->route('repository.index');
         }
 
-        $validated = $request->validate([
-            'laporan_akhir_id' => 'required|exists:laporan_akhirs,id',
-            'judul' => 'nullable|string|max:255',
-            'deskripsi' => 'required|string',
-            'deskripsi_lengkap' => 'nullable|string',
-            'tahun_magang' => 'required|digits:4',
-            'bagian' => 'nullable|string|max:255',
-            'kategori' => 'nullable|string|max:255',
-            'is_published' => 'nullable|boolean',
-        ]);
+        // Cek mode input
+        $inputMode = $request->input('input_mode', 'system');
 
-        try {
-            $repository = $this->repositoryRepo->createFromLaporanAkhir(
-                $validated['laporan_akhir_id'],
-                $validated
-            );
+        if ($inputMode === 'manual') {
+            // Validasi untuk mode manual
+            $validated = $request->validate([
+                'file_laporan_manual' => 'required|file|mimes:pdf|max:10240', // 10MB
+                'nama_peserta_manual' => 'required|string|max:255',
+                'judul' => 'required|string|max:255',
+                'deskripsi' => 'required|string',
+                'deskripsi_lengkap' => 'nullable|string',
+                'tahun_magang' => 'required|digits:4',
+                'bagian' => 'nullable|string|max:255',
+                'kategori' => 'nullable|string|max:255',
+                'is_published' => 'nullable|boolean',
+            ]);
 
-            Alert::success('Berhasil', 'Repository berhasil dibuat.');
-            return redirect()->route('repository.show', $repository->id);
-        } catch (\Exception $e) {
-            Alert::error('Error', $e->getMessage());
-            return redirect()->back()->withInput();
+            try {
+                // Upload file PDF
+                $file = $request->file('file_laporan_manual');
+                $fileName = 'repository_manual_' . time() . '_' . $file->getClientOriginalName();
+                $filePath = $file->storeAs('laporan_repository', $fileName, 'public');
+
+                // Buat repository manual
+                $repository = $this->repositoryRepo->createManual([
+                    'judul' => $validated['judul'],
+                    'deskripsi' => $validated['deskripsi'],
+                    'deskripsi_lengkap' => $validated['deskripsi_lengkap'] ?? null,
+                    'tahun_magang' => $validated['tahun_magang'],
+                    'bagian' => $validated['bagian'] ?? null,
+                    'kategori' => $validated['kategori'] ?? null,
+                    'is_published' => $validated['is_published'] ?? false,
+                    'file_path' => $filePath,
+                    'nama_peserta' => $validated['nama_peserta_manual'],
+                ]);
+
+                Alert::success('Berhasil', 'Repository berhasil dibuat dari upload manual.');
+                return redirect()->route('repository.show', $repository->id);
+            } catch (\Exception $e) {
+                Alert::error('Error', $e->getMessage());
+                return redirect()->back()->withInput();
+            }
+        } else {
+            // Validasi untuk mode dari sistem
+            $validated = $request->validate([
+                'laporan_akhir_id' => 'required|exists:laporan_akhirs,id',
+                'judul' => 'nullable|string|max:255',
+                'deskripsi' => 'required|string',
+                'deskripsi_lengkap' => 'nullable|string',
+                'tahun_magang' => 'required|digits:4',
+                'bagian' => 'nullable|string|max:255',
+                'kategori' => 'nullable|string|max:255',
+                'is_published' => 'nullable|boolean',
+            ]);
+
+            try {
+                $repository = $this->repositoryRepo->createFromLaporanAkhir(
+                    $validated['laporan_akhir_id'],
+                    $validated
+                );
+
+                Alert::success('Berhasil', 'Repository berhasil dibuat.');
+                return redirect()->route('repository.show', $repository->id);
+            } catch (\Exception $e) {
+                Alert::error('Error', $e->getMessage());
+                return redirect()->back()->withInput();
+            }
         }
     }
 
@@ -228,6 +300,7 @@ class RepositoryController extends Controller
 
         $validated = $request->validate([
             'judul' => 'required|string|max:255',
+            'nama_peserta' => 'nullable|string|max:255', // untuk repository manual
             'deskripsi' => 'required|string',
             'deskripsi_lengkap' => 'nullable|string',
             'tahun_magang' => 'required|digits:4',

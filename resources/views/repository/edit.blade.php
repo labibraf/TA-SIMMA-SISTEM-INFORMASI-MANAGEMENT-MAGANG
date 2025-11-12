@@ -33,6 +33,7 @@
             </div>
 
             {{-- Info Laporan Akhir --}}
+            @if($repository->laporanAkhir)
             <div class="card border-primary mb-4">
                 <div class="card-header bg-primary text-white">
                     <h6 class="mb-0">
@@ -63,6 +64,22 @@
                     </div>
                 </div>
             </div>
+            @else
+            <div class="card border-success mb-4">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-upload me-2"></i>Repository dari Upload Manual
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Repository ini dibuat melalui upload manual (bukan dari laporan akhir di sistem).
+                        <br><strong>Peserta:</strong> {{ $repository->nama_peserta ?? 'N/A' }}
+                    </div>
+                </div>
+            </div>
+            @endif
 
             {{-- Form Card --}}
             <div class="card border-0 shadow-sm">
@@ -87,6 +104,27 @@
                             @enderror
                         </div>
 
+                        {{-- Nama Peserta (untuk repository manual) --}}
+                        @if(!$repository->laporanAkhir)
+                        <div class="mb-4">
+                            <label for="nama_peserta" class="form-label">
+                                <i class="fas fa-user me-1"></i>Nama Peserta
+                            </label>
+                            <input type="text"
+                                   name="nama_peserta"
+                                   id="nama_peserta"
+                                   class="form-control @error('nama_peserta') is-invalid @enderror"
+                                   value="{{ old('nama_peserta', $repository->nama_peserta) }}"
+                                   readonly>
+                            @error('nama_peserta')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="form-text text-muted">
+                                Nama peserta untuk repository yang dibuat manual (tidak dapat diubah)
+                            </small>
+                        </div>
+                        @endif
+
                         {{-- Deskripsi Singkat --}}
                         <div class="mb-4">
                             <label for="deskripsi" class="form-label">
@@ -101,14 +139,14 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                             <small class="form-text text-muted">
-                                Deskripsi yang akan ditampilkan di halaman utama repository
+                                Deskripsi singkat yang akan ditampilkan di halaman utama repository (diisi manual oleh admin)
                             </small>
                         </div>
 
                         {{-- Deskripsi Lengkap --}}
                         <div class="mb-4">
                             <label for="deskripsi_lengkap" class="form-label">
-                                <i class="fas fa-file-alt me-1"></i>Deskripsi Lengkap (Opsional)
+                                <i class="fas fa-file-alt me-1"></i>Deskripsi Lengkap
                             </label>
                             <textarea name="deskripsi_lengkap"
                                       id="deskripsi_lengkap"
@@ -118,7 +156,7 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                             <small class="form-text text-muted">
-                                Deskripsi detail yang akan ditampilkan di halaman detail repository
+                                Deskripsi detail dari laporan akhir yang ditampilkan di halaman detail repository
                             </small>
                         </div>
 

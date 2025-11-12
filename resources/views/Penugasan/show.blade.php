@@ -77,40 +77,38 @@
                     @if($penugasan->kategori === 'Divisi')
                     <div class="mb-3">
                         <label class="fw-bold">Peserta yang Ditugaskan:</label>
-                        @php
-                            $pesertaList = $penugasan->pesertas();
-                        @endphp
                         @if($pesertaList->count() > 0)
                             <div class="table-responsive mt-2">
                                 <table class="table table-sm table-bordered">
                                     <thead class="table-light">
                                         <tr>
+                                            <th>No</th>
                                             <th>Nama Peserta</th>
-                                            <th>Progress</th>
+                                            <th width="45%">Progress</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @foreach($pesertaList as $peserta)
-                                            @php
-                                                // Ambil progress tertinggi dari laporan harian peserta untuk penugasan ini
-                                                $progressPeserta = \App\Models\LaporanHarian::where('penugasan_id', $penugasan->id)
-                                                    ->where('peserta_id', $peserta->id)
-                                                    ->max('progres_tugas') ?? 0;
-                                            @endphp
                                             <tr>
+                                                <td class="text-center">{{ $loop->iteration }}</td>
                                                 <td>{{ $peserta->user->name ?? $peserta->nama_lengkap ?? '-' }}</td>
                                                 <td>
                                                     <div class="d-flex align-items-center">
-                                                        <div class="progress flex-grow-1 me-2" style="height: 10px; border: 1px solid #dee2e6; border-radius: 4px;">
-                                                            <div class="progress-bar bg-success"
+                                                        <div class="progress flex-grow-1 me-2" style="height: 12px; border: 1px solid #dee2e6; border-radius: 4px;">
+                                                            <div class="progress-bar
+                                                                @if($peserta->progress == 100) bg-success
+                                                                @elseif($peserta->progress >= 75) bg-info
+                                                                @elseif($peserta->progress >= 50) bg-warning
+                                                                @else bg-danger
+                                                                @endif"
                                                                 role="progressbar"
-                                                                style="width: {{ $progressPeserta }}%; border-radius: 3px;"
-                                                                aria-valuenow="{{ $progressPeserta }}"
+                                                                style="width: {{ $peserta->progress }}%; border-radius: 3px;"
+                                                                aria-valuenow="{{ $peserta->progress }}"
                                                                 aria-valuemin="0"
                                                                 aria-valuemax="100">
                                                             </div>
                                                         </div>
-                                                        <span class="small">{{ $progressPeserta }}%</span>
+                                                        <span class="small" style="min-width: 45px;">{{ number_format($peserta->progress, 1) }}%</span>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -186,28 +184,40 @@
                     <!-- Progress Tugas -->
                     @if(isset($currentProgress) && $currentProgress > 0)
                     <div class="mb-3">
-                        <label class="fw-bold">Progress Tugas:</label>
+                        <label class="fw-bold">
+                            Progress Tugas
+                            @if($penugasan->kategori === 'Divisi')
+                                <span class=" text-dark ms-1">Total Persentase Tugas</span>
+                            @endif
+                            :
+                        </label>
                         <div class="mt-2">
                             <div class="d-flex align-items-center mb-2">
                                 <div class="progress flex-grow-1 me-3" style="height: 20px; border: 2px solid #dee2e6; border-radius: 6px;">
-                                    <div class="progress-bar bg-success"
+                                    <div class="progress-bar
+                                        @if($currentProgress == 100) bg-success
+                                        @elseif($currentProgress >= 75) bg-info
+                                        @elseif($currentProgress >= 50) bg-warning
+                                        @else bg-danger
+                                        @endif"
                                         role="progressbar"
                                         style="width: {{ $currentProgress }}%; border-radius: 4px;"
                                         aria-valuenow="{{ $currentProgress }}"
                                         aria-valuemin="0"
                                         aria-valuemax="100">
-                                        {{ $currentProgress }}%
+                                        {{ number_format($currentProgress, 1) }}%
                                     </div>
                                 </div>
-                                <span class="fw-bold">{{ $currentProgress }}%</span>
+                                <span class="fw-bold">{{ number_format($currentProgress, 1) }}%</span>
                             </div>
                             @if(isset($latestLaporan))
                                 <div class="small text-muted">
                                     @if($penugasan->kategori === 'Divisi')
-                                        Progress tertinggi dari: {{ $latestLaporan->peserta->user->name ?? $latestLaporan->peserta->nama_lengkap ?? 'Peserta' }}
+                                        <i class="fas fa-info-circle"></i> Rata-rata progress dari progress tertinggi setiap peserta
                                         <br>Terakhir diupdate: {{ $latestLaporan->created_at->format('d M Y H:i') }}
                                     @else
-                                        Terakhir diupdate: {{ $latestLaporan->created_at->format('d M Y H:i') }}
+                                        <i class="fas fa-clock"></i> Progress tertinggi dari laporan harian
+                                        <br>Terakhir diupdate: {{ $latestLaporan->created_at->format('d M Y H:i') }}
                                     @endif
                                 </div>
                             @endif
@@ -429,7 +439,7 @@
                                                     </div>
                                                     <div class="modal-footer">
                                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                                        <form action="{{ route('laporan-harian.destroy', $laporan->id) }}" method="POST">
+                                                        <form action="{{ route('laporan_harian.destroy', $laporan->id) }}" method="POST">
                                                             @csrf
                                                             @method('DELETE')
                                                             <button type="submit" class="btn btn-danger">Hapus</button>

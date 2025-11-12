@@ -123,10 +123,10 @@
                                         </div>
                                     </td>
                                     <td>
-                                        <small class="text-muted">
+                                        <medium class="text-muted">
                                             <i class="ti ti-calendar me-1"></i>
                                             {{ \Carbon\Carbon::parse($tugas->updated_at)->format('d M Y') }}
-                                        </small>
+                                        </medium>
                                     </td>
                                     <td>
                                         <span class="badge bg-warning">Menunggu Review</span>
@@ -159,7 +159,9 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="ti ti-users me-2"></i>Progres Peserta Bimbingan</h5>
-                    <span class="badge bg-success">{{ $pesertaAktif }} Peserta Aktif</span>
+                    <a href="{{ route('peserta.index') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="ti ti-eye me-1"></i>Lihat Semua
+                    </a>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -190,19 +192,6 @@
                                     <td>{{ $peserta->asal_instansi }}</td>
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <div class="progress flex-grow-1 me-2" style="height: 8px; border: 2px solid #ccc; border-radius: 4px">
-                                                <div class="progress-bar
-                                                    @if($peserta->progress_percentage >= 75) bg-success
-                                                    @elseif($peserta->progress_percentage >= 25) bg-warning
-                                                    @else bg-danger
-                                                    @endif"
-                                                    role="progressbar"
-                                                    style="width: {{ $peserta->progress_percentage }}%;"
-                                                    aria-valuenow="{{ $peserta->progress_percentage }}"
-                                                    aria-valuemin="0"
-                                                    aria-valuemax="100">
-                                                </div>
-                                            </div>
                                             <span class="badge
                                                 @if($peserta->progress_percentage >= 75) bg-success #28a745
                                                 @elseif($peserta->progress_percentage >= 25) bg-warning #ffc107
