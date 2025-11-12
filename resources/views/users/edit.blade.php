@@ -15,7 +15,7 @@
                     <div class="col-md-8">
                         <!-- Informasi User -->
                         <div class="card mb-4">
-                            <div class="card-header bg-primary text-white">
+                            <div class="card-header bg-blue-200 text-white mr-3">
                                 <h5 class="mb-0"><i class="fas fa-user"></i> Informasi Dasar</h5>
                             </div>
                             <div class="card-body">
@@ -66,13 +66,13 @@
 
                         <!-- Status Profil -->
                         <div class="card mb-4">
-                            <div class="card-header bg-info text-white">
+                            <div class="card-header bg-blue-200 text-white">
                                 <h5 class="mb-0"><i class="fas fa-info-circle"></i> Status Profil</h5>
                             </div>
                             <div class="card-body">
                                 @if($user->peserta)
-                                    <div class="alert alert-success">
-                                        <i class="fas fa-user-graduate"></i>
+                                    <div class="alert bg-green-100">
+                                        <i class="fas fa-user-graduate mr-2"></i>
                                         <strong>Profil Peserta Lengkap</strong>
                                         <p class="mb-0 mt-2">Nama di profil peserta: <strong>{{ $user->peserta->nama_lengkap }}</strong></p>
                                         <p class="mb-0">Email di profil peserta: <strong>{{ $user->peserta->email }}</strong></p>

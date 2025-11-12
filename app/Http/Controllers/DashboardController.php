@@ -42,32 +42,46 @@ class DashboardController extends Controller
         // Get filter parameters
         $tahun = $request->input('tahun');
         $bulan = $request->input('bulan');
-        $search = $request->input('search');
+        $bagian = $request->input('bagian');
+        $trendPeriod = $request->input('trend_period', 6); // Default 6 bulan
+
+        // Debug log untuk melihat filter yang diterima
+        \Log::info('Dashboard Filter', [
+            'tahun' => $tahun,
+            'bulan' => $bulan,
+            'bagian' => $bagian,
+            'trend_period' => $trendPeriod
+        ]);
 
         // Build query with filters
         $pesertaQuery = Peserta::query();
 
-        // Filter berdasarkan tahun
+        // Filter berdasarkan tahun (menggunakan tanggal_mulai_magang)
         if ($tahun) {
-            $pesertaQuery->whereYear('created_at', $tahun);
+            $pesertaQuery->whereYear('tanggal_mulai_magang', $tahun);
 
             // Filter bulan hanya jika tahun juga dipilih
             if ($bulan) {
-                $pesertaQuery->whereMonth('created_at', $bulan);
+                $pesertaQuery->whereMonth('tanggal_mulai_magang', $bulan);
             }
         }
 
-        // Filter berdasarkan search
-        if ($search) {
-            $pesertaQuery->where(function($q) use ($search) {
-                $q->where('nama_lengkap', 'like', '%' . $search . '%')
-                  ->orWhere('nomor_identitas', 'like', '%' . $search . '%')
-                  ->orWhere('asal_instansi', 'like', '%' . $search . '%');
+        // Filter berdasarkan bagian/departemen
+        if ($bagian) {
+            $pesertaQuery->whereHas('bagian', function($q) use ($bagian) {
+                $q->where('nama_bagian', $bagian);
             });
         }
 
         // Basic Statistics (with filters)
         $totalPeserta = (clone $pesertaQuery)->count();
+
+        // Debug log untuk melihat total peserta yang difilter
+        \Log::info('Total Peserta after filter', [
+            'count' => $totalPeserta,
+            'sql' => (clone $pesertaQuery)->toSql()
+        ]);
+
         $totalMentor = Mentor::count();
         $totalBagian = Bagian::count();
         $totalUsers = User::count();
@@ -139,109 +153,170 @@ class DashboardController extends Controller
         //     ->limit(5)
         //     ->get();
 
-        // Department Distribution
-        $bagianDistribution = Bagian::withCount('peserta')->get();
+        // Department Distribution (with filters)
+        $bagianDistribution = Bagian::withCount(['peserta' => function($query) use ($tahun, $bulan) {
+            if ($tahun) {
+                $query->whereYear('tanggal_mulai_magang', $tahun);
+                if ($bulan) {
+                    $query->whereMonth('tanggal_mulai_magang', $bulan);
+                }
+            }
+        }])->get();
 
-        // Monthly Registration Trend (last 6 months)
+        // Monthly Registration Trend - with dynamic period filter
         $monthlyTrend = [];
-        for ($i = 5; $i >= 0; $i--) {
+        for ($i = $trendPeriod - 1; $i >= 0; $i--) {
             $month = now()->subMonths($i);
-            $count = Peserta::whereYear('created_at', $month->year)
-                           ->whereMonth('created_at', $month->month)
-                           ->count();
+            $query = Peserta::whereYear('tanggal_mulai_magang', $month->year)
+                           ->whereMonth('tanggal_mulai_magang', $month->month);
+
+            // Apply bagian filter if exists
+            if ($bagian) {
+                $query->whereHas('bagian', function($q) use ($bagian) {
+                    $q->where('nama_bagian', $bagian);
+                });
+            }
+
+            $count = $query->count();
             $monthlyTrend[] = [
                 'month' => $month->format('M Y'),
                 'count' => $count
             ];
         }
 
-        // Total working hours across all peserta
-        $totalJamMagang = Peserta::sum('waktu_tugas_tercapai') ?? 0;
+        // Total working hours across all peserta (with filters)
+        $totalJamMagang = (clone $pesertaQuery)->sum('waktu_tugas_tercapai') ?? 0;
 
-        // Laporan Akhir Statistics
-        $totalLaporanAkhir = LaporanAkhir::count(); // Total semua laporan akhir
+        // Laporan Akhir Statistics (with filters)
+        $totalLaporanAkhir = (clone $pesertaQuery)->has('laporanAkhir')->count(); // Total peserta yang punya laporan akhir (filtered)
         $laporanAkhirSelesai = (clone $pesertaQuery)->whereHas('laporanAkhir', function($q) {
             $q->where('status', 'terima');
         })->count();
         $laporanAkhirTolak = (clone $pesertaQuery)->whereHas('laporanAkhir', function($q) {
             $q->where('status', 'tolak');
         })->count();
-        $laporanAkhirBelum = $totalLaporanAkhir - $laporanAkhirSelesai - $laporanAkhirTolak; // Total laporan - selesai - tolak
+        $laporanAkhirBelum = $totalPeserta - $laporanAkhirSelesai - $laporanAkhirTolak; // Total peserta - yang sudah mengajukan
 
-        // Task Completion Statistics
-        $totalTugas = Penugasan::count();
-        $tugasSelesai = Penugasan::where('status_tugas', 'Selesai')->count();
-        $tugasBerjalan = Penugasan::where('status_tugas', 'Dikerjakan')->count();
-        $tugasBelumDimulai = Penugasan::where('status_tugas', 'Belum')->count();
+        // Repository Draft Statistics (untuk notifikasi admin)
+        $repositoryDraft = \App\Models\Repository::where('is_published', false)->count();
 
-        // Peserta Progress Statistics
-        $pesertaTargetTercapai = Peserta::whereRaw('waktu_tugas_tercapai >= target_waktu_tugas')->count();
+        // Task Completion Statistics (with filters - hanya tugas dari peserta yang difilter)
+        $pesertaIds = (clone $pesertaQuery)->pluck('id')->toArray();
+
+        $totalTugas = Penugasan::where(function($query) use ($pesertaIds) {
+            $query->whereIn('peserta_id', $pesertaIds)
+                  ->orWhere('kategori', 'Divisi');
+        })->count();
+
+        $tugasSelesai = Penugasan::where(function($query) use ($pesertaIds) {
+            $query->whereIn('peserta_id', $pesertaIds)
+                  ->orWhere('kategori', 'Divisi');
+        })->where('status_tugas', 'Selesai')->count();
+
+        $tugasBerjalan = Penugasan::where(function($query) use ($pesertaIds) {
+            $query->whereIn('peserta_id', $pesertaIds)
+                  ->orWhere('kategori', 'Divisi');
+        })->where('status_tugas', 'Dikerjakan')->count();
+
+        $tugasBelumDimulai = Penugasan::where(function($query) use ($pesertaIds) {
+            $query->whereIn('peserta_id', $pesertaIds)
+                  ->orWhere('kategori', 'Divisi');
+        })->where('status_tugas', 'Belum')->count();
+
+        // Peserta Progress Statistics (with filters)
+        $pesertaTargetTercapai = (clone $pesertaQuery)->whereRaw('waktu_tugas_tercapai >= target_waktu_tugas')->count();
         $pesertaTargetBelum = $totalPeserta - $pesertaTargetTercapai;
 
-        // Gender Distribution
-        $pesertaLakiLaki = Peserta::where('jenis_kelamin', 'Laki-laki')->count();
-        $pesertaPerempuan = Peserta::where('jenis_kelamin', 'Perempuan')->count();
+        // Gender Distribution (with filters)
+        $pesertaLakiLaki = (clone $pesertaQuery)->where('jenis_kelamin', 'Laki-laki')->count();
+        $pesertaPerempuan = (clone $pesertaQuery)->where('jenis_kelamin', 'Perempuan')->count();
 
-        // Internship Type Distribution
-        $magangKP = Peserta::where('tipe_magang', 'Kerja Praktik')->count();
-        $magangNasional = Peserta::where('tipe_magang', 'Magang Nasional')->count();
-        $magangPenelitian = Peserta::where('tipe_magang', 'Penelitian')->count();
+        // Internship Type Distribution (with filters)
+        $magangKP = (clone $pesertaQuery)->where('tipe_magang', 'Kerja Praktik')->count();
+        $magangNasional = (clone $pesertaQuery)->where('tipe_magang', 'Magang Nasional')->count();
+        $magangPenelitian = (clone $pesertaQuery)->where('tipe_magang', 'Penelitian')->count();
 
-        // Task Approval Statistics
-        $tugasApproved = Penugasan::where('is_approved', 1)->count();
+        // Task Approval Statistics (with filters)
+        $tugasApproved = Penugasan::where(function($query) use ($pesertaIds) {
+            $query->whereIn('peserta_id', $pesertaIds)
+                  ->orWhere('kategori', 'Divisi');
+        })->where('is_approved', 1)->count();
+
         // Pending Approval: tugas yang sudah selesai tapi belum di-approve
-        $tugasPendingApproval = Penugasan::where('is_approved', 0)->where('status_tugas', 'Selesai')->count();
+        $tugasPendingApproval = Penugasan::where(function($query) use ($pesertaIds) {
+            $query->whereIn('peserta_id', $pesertaIds)
+                  ->orWhere('kategori', 'Divisi');
+        })->where('is_approved', 0)->where('status_tugas', 'Selesai')->count();
 
-        // Mentor Workload Statistics
-        $mentorTertinggi = Mentor::withCount('peserta')->orderBy('peserta_count', 'desc')->first();
+        // Mentor Workload Statistics (with filters)
+        $mentorTertinggi = Mentor::withCount(['peserta' => function($query) use ($tahun, $bulan) {
+            if ($tahun) {
+                $query->whereYear('tanggal_mulai_magang', $tahun);
+                if ($bulan) {
+                    $query->whereMonth('tanggal_mulai_magang', $bulan);
+                }
+            }
+        }])->orderBy('peserta_count', 'desc')->first();
+
         $rataRataPesertaPerMentor = $totalMentor > 0 ? round($totalPeserta / $totalMentor, 1) : 0;
 
-        // Progress Distribution (untuk pie chart tambahan)
-        $pesertaBaru = Peserta::whereRaw('waktu_tugas_tercapai < (target_waktu_tugas * 0.25)')->count(); // < 25%
-        $pesertaMenungah = Peserta::whereRaw('waktu_tugas_tercapai >= (target_waktu_tugas * 0.25) AND waktu_tugas_tercapai < (target_waktu_tugas * 0.75)')->count(); // 25-75%
-        $pesertaMahir = Peserta::whereRaw('waktu_tugas_tercapai >= (target_waktu_tugas * 0.75)')->count(); // >= 75%
+        // Progress Distribution (untuk pie chart tambahan) - with filters
+        $pesertaBaru = (clone $pesertaQuery)->whereRaw('waktu_tugas_tercapai < (target_waktu_tugas * 0.25)')->count(); // < 25%
+        $pesertaMenungah = (clone $pesertaQuery)->whereRaw('waktu_tugas_tercapai >= (target_waktu_tugas * 0.25) AND waktu_tugas_tercapai < (target_waktu_tugas * 0.75)')->count(); // 25-75%
+        $pesertaMahir = (clone $pesertaQuery)->whereRaw('waktu_tugas_tercapai >= (target_waktu_tugas * 0.75)')->count(); // >= 75%
 
-        // Monthly Performance (peserta selesai per bulan dalam 6 bulan terakhir)
+        // Monthly Performance (peserta selesai per bulan dalam 6 bulan terakhir) - with filters
         $monthlyCompletions = [];
         for ($i = 5; $i >= 0; $i--) {
             $month = now()->subMonths($i);
-            $count = Peserta::whereYear('tanggal_selesai_magang', $month->year)
+            $query = (clone $pesertaQuery)->whereYear('tanggal_selesai_magang', $month->year)
                            ->whereMonth('tanggal_selesai_magang', $month->month)
-                           ->where('tanggal_selesai_magang', '<', now())
-                           ->count();
+                           ->where('tanggal_selesai_magang', '<', now());
+
+            $count = $query->count();
             $monthlyCompletions[] = [
                 'month' => $month->format('M Y'),
                 'count' => $count
             ];
         }
 
-        // Institution Distribution (top 5)
-        $topInstitutions = Peserta::selectRaw('asal_instansi, COUNT(*) as count')
+        // Institution Distribution (top 5) - with filters
+        $topInstitutions = (clone $pesertaQuery)->selectRaw('asal_instansi, COUNT(*) as count')
             ->groupBy('asal_instansi')
             ->orderBy('count', 'desc')
             ->limit(5)
             ->get();
 
-        // Age Groups (berdasarkan tahun lahir atau estimasi dari nomor identitas)
-        $pesertaMuda = Peserta::where('created_at', '>=', now()->subYears(22))->count(); // Estimasi umur < 22
-        $pesertaDewasa = Peserta::where('created_at', '<', now()->subYears(22))
-                              ->where('created_at', '>=', now()->subYears(25))->count(); // 22-25
-        $pesertaTua = Peserta::where('created_at', '<', now()->subYears(25))->count(); // > 25
+        // Age Groups - REMOVED (tidak relevan dengan filter tahun/bulan/bagian)
+        $pesertaMuda = 0;
+        $pesertaDewasa = 0;
+        $pesertaTua = 0;
 
         // ==================== SECTION A: LINE/AREA CHARTS ====================
 
-        // Daily Activity Trend (last 30 days)
+        // Daily Activity Trend (last 30 days) - with filters
         $dailyActivityTrend = [];
         for ($i = 29; $i >= 0; $i--) {
             $date = now()->subDays($i);
-            $count = \App\Models\LaporanHarian::whereDate('created_at', $date->format('Y-m-d'))->count();
+            $count = \App\Models\LaporanHarian::whereHas('peserta', function($q) use ($tahun, $bulan, $bagian) {
+                if ($tahun) {
+                    $q->whereYear('tanggal_mulai_magang', $tahun);
+                    if ($bulan) {
+                        $q->whereMonth('tanggal_mulai_magang', $bulan);
+                    }
+                }
+                if ($bagian) {
+                    $q->whereHas('bagian', function($subQ) use ($bagian) {
+                        $subQ->where('nama_bagian', $bagian);
+                    });
+                }
+            })->whereDate('created_at', $date->format('Y-m-d'))->count();
+
             $dailyActivityTrend[] = [
                 'date' => $date->format('d M'),
                 'count' => $count
             ];
-        }
-
-        // Attendance Heatmap (last 30 days - weekly view)
+        }        // Attendance Heatmap (last 30 days - weekly view) - with filters
         $attendanceHeatmapData = [];
         $startDate = now()->subDays(34); // Start from 35 days ago to get 5 complete weeks
 
@@ -259,9 +334,20 @@ class DashboardController extends Controller
             for ($day = 0; $day < 7; $day++) {
                 $currentDate = $startDate->copy()->addDays($week * 7 + $day);
 
-                // Count daily reports for this date
-                $count = \App\Models\LaporanHarian::whereDate('created_at', $currentDate->format('Y-m-d'))
-                    ->count();
+                // Count daily reports for this date - with filters
+                $count = \App\Models\LaporanHarian::whereHas('peserta', function($q) use ($tahun, $bulan, $bagian) {
+                    if ($tahun) {
+                        $q->whereYear('tanggal_mulai_magang', $tahun);
+                        if ($bulan) {
+                            $q->whereMonth('tanggal_mulai_magang', $bulan);
+                        }
+                    }
+                    if ($bagian) {
+                        $q->whereHas('bagian', function($subQ) use ($bagian) {
+                            $subQ->where('nama_bagian', $bagian);
+                        });
+                    }
+                })->whereDate('created_at', $currentDate->format('Y-m-d'))->count();
 
                 $dayOfWeek = $currentDate->dayOfWeek; // 0 (Minggu) sampai 6 (Sabtu)
 
@@ -276,12 +362,24 @@ class DashboardController extends Controller
 
         // ==================== SECTION B: BAR CHARTS ====================
 
-        // Mentor Performance (jumlah peserta & completion rate per mentor)
-        $mentorPerformance = Mentor::withCount(['peserta' => function($query) {
+        // Mentor Performance (jumlah peserta & completion rate per mentor) - with filters
+        $mentorPerformance = Mentor::withCount(['peserta' => function($query) use ($tahun, $bulan) {
+            if ($tahun) {
+                $query->whereYear('tanggal_mulai_magang', $tahun);
+                if ($bulan) {
+                    $query->whereMonth('tanggal_mulai_magang', $bulan);
+                }
+            }
             $query->where('tanggal_selesai_magang', '<', now());
         }])
-        ->with(['peserta' => function($query) {
-            $query->select('id', 'mentor_id', 'waktu_tugas_tercapai', 'target_waktu_tugas', 'target_method', 'sks');
+        ->with(['peserta' => function($query) use ($tahun, $bulan) {
+            if ($tahun) {
+                $query->whereYear('tanggal_mulai_magang', $tahun);
+                if ($bulan) {
+                    $query->whereMonth('tanggal_mulai_magang', $bulan);
+                }
+            }
+            $query->select('id', 'mentor_id', 'waktu_tugas_tercapai', 'target_waktu_tugas', 'target_method', 'sks', 'bagian_id');
         }])
         ->get()
         ->map(function($mentor) {
@@ -306,28 +404,49 @@ class DashboardController extends Controller
         ->take(10)
         ->values();
 
-        // Task Categories Distribution
-        $taskIndividu = Penugasan::where('kategori', 'Individu')->count();
+        // Task Categories Distribution (with filters)
+        $taskIndividu = Penugasan::where(function($query) use ($pesertaIds) {
+            $query->whereIn('peserta_id', $pesertaIds);
+        })->where('kategori', 'Individu')->count();
+
         $taskDivisi = Penugasan::where('kategori', 'Divisi')->count();
-        $taskIndividuSelesai = Penugasan::where('kategori', 'Individu')->where('status_tugas', 'Selesai')->count();
+
+        $taskIndividuSelesai = Penugasan::where(function($query) use ($pesertaIds) {
+            $query->whereIn('peserta_id', $pesertaIds);
+        })->where('kategori', 'Individu')->where('status_tugas', 'Selesai')->count();
+
         $taskDivisiSelesai = Penugasan::where('kategori', 'Divisi')->where('status_tugas', 'Selesai')->count();
 
         // ==================== SECTION C: PIE/DONUT CHARTS (ADDITIONS) ====================
 
-        // Task Approval Detailed
-        $tugasApproved = Penugasan::where('is_approved', 1)->where('status_tugas', 'Selesai')->count();
-        // Pending: tugas yang belum di-approve DAN sudah selesai (menunggu approval)
-        $tugasPending = Penugasan::where('is_approved', 0)->where('status_tugas', 'Selesai')->count();
+        // Task Approval Detailed (with filters)
+        $tugasPending = Penugasan::where(function($query) use ($pesertaIds) {
+            $query->whereIn('peserta_id', $pesertaIds)
+                  ->orWhere('kategori', 'Divisi');
+        })->where('is_approved', 0)->where('status_tugas', 'Selesai')->count();
 
-        // Target Method Distribution
-        $targetMethodSKS = Peserta::where('target_method', 'sks')->count();
+        // Target Method Distribution (with filters)
+        $targetMethodSKS = (clone $pesertaQuery)->where('target_method', 'sks')->count();
         // Manual = semua yang bukan SKS (termasuk NULL, empty, atau value lain)
         $targetMethodManual = $totalPeserta - $targetMethodSKS;
 
         // ==================== DATA TABLES & LISTS ====================
 
-        // Recent Daily Reports (last 10)
+        // Recent Daily Reports (last 5) - with filters
         $recentDailyReports = \App\Models\LaporanHarian::with(['peserta.user', 'penugasan'])
+            ->whereHas('peserta', function($q) use ($tahun, $bulan, $bagian) {
+                if ($tahun) {
+                    $q->whereYear('tanggal_mulai_magang', $tahun);
+                    if ($bulan) {
+                        $q->whereMonth('tanggal_mulai_magang', $bulan);
+                    }
+                }
+                if ($bagian) {
+                    $q->whereHas('bagian', function($subQ) use ($bagian) {
+                        $subQ->where('nama_bagian', $bagian);
+                    });
+                }
+            })
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get()
@@ -341,10 +460,14 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Pending Approvals (tasks waiting for approval)
+        // Pending Approvals (tasks waiting for approval) - with filters
         $pendingApprovals = Penugasan::with(['peserta.user', 'bagian'])
             ->where('status_tugas', 'Selesai')
             ->where('is_approved', 0)
+            ->where(function($query) use ($pesertaIds) {
+                $query->whereIn('peserta_id', $pesertaIds)
+                      ->orWhere('kategori', 'Divisi');
+            })
             ->orderBy('updated_at', 'desc')
             ->limit(10)
             ->get()
@@ -361,10 +484,14 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Overdue Tasks (tasks past deadline and not completed)
+        // Overdue Tasks (tasks past deadline and not completed) - with filters
         $overdueTasks = Penugasan::with(['peserta.user', 'bagian'])
             ->where('deadline', '<', now())
             ->where('status_tugas', '!=', 'Selesai')
+            ->where(function($query) use ($pesertaIds) {
+                $query->whereIn('peserta_id', $pesertaIds)
+                      ->orWhere('kategori', 'Divisi');
+            })
             ->orderBy('deadline', 'asc')
             ->limit(10)
             ->get()
@@ -382,8 +509,8 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Low Performance Alert (peserta with progress < 25%)
-        $lowPerformanceAlert = Peserta::with(['bagian', 'mentor'])
+        // Low Performance Alert (peserta with progress < 25%) - with filters
+        $lowPerformanceAlert = (clone $pesertaQuery)->with(['bagian', 'mentor'])
             ->get()
             ->filter(function($peserta) {
                 $target = $peserta->target_method === 'sks'
@@ -416,8 +543,9 @@ class DashboardController extends Controller
             ->take(10)
             ->values();
 
-        // Get list of years for filter dropdown
-        $tahunList = Peserta::selectRaw('YEAR(created_at) as tahun')
+        // Get list of years for filter dropdown (berdasarkan tahun magang)
+        $tahunList = Peserta::selectRaw('YEAR(tanggal_mulai_magang) as tahun')
+            ->whereNotNull('tanggal_mulai_magang')
             ->distinct()
             ->orderBy('tahun', 'desc')
             ->pluck('tahun');
@@ -426,9 +554,9 @@ class DashboardController extends Controller
             'totalPeserta', 'totalMentor', 'totalBagian', 'totalUsers',
             'pesertaAktif', 'pesertaSelesai', 'pesertaHampirSelesai',
             'recentPeserta', 'bagianDistribution',
-            'monthlyTrend', 'totalJamMagang',
+            'monthlyTrend', 'totalJamMagang', 'trendPeriod',
             // Pie Chart Data
-            'totalLaporanAkhir', 'laporanAkhirSelesai','laporanAkhirTolak', 'laporanAkhirBelum',
+            'totalLaporanAkhir', 'laporanAkhirSelesai','laporanAkhirTolak', 'laporanAkhirBelum', 'repositoryDraft',
             'totalTugas', 'tugasSelesai', 'tugasBerjalan', 'tugasBelumDimulai',
             'pesertaTargetTercapai', 'pesertaTargetBelum',
             'pesertaLakiLaki', 'pesertaPerempuan',

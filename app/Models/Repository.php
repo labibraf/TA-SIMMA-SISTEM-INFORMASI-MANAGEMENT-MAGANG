@@ -15,6 +15,8 @@ class Repository extends Model
         'deskripsi_lengkap',
         'laporan_akhir_id',
         'peserta_id',
+        'file_path',
+        'nama_peserta',
         'tahun_magang',
         'bagian',
         'kategori',
@@ -28,68 +30,41 @@ class Repository extends Model
         'published_at' => 'datetime',
         'views' => 'integer',
     ];
-
-    /**
-     * Relasi ke model LaporanAkhir
-     * Setiap repository terhubung dengan 1 laporan akhir
-     */
     public function laporanAkhir(): BelongsTo
     {
         return $this->belongsTo(LaporanAkhir::class, 'laporan_akhir_id');
     }
 
-    /**
-     * Relasi ke model Peserta
-     * Setiap repository dibuat oleh 1 peserta
-     */
     public function peserta(): BelongsTo
     {
         return $this->belongsTo(Peserta::class, 'peserta_id');
     }
 
-    /**
-     * Scope untuk hanya mengambil repository yang sudah dipublish
-     */
     public function scopePublished($query)
     {
         return $query->where('is_published', true);
     }
 
-    /**
-     * Scope untuk filter berdasarkan tahun
-     */
     public function scopeByYear($query, $year)
     {
         return $query->where('tahun_magang', $year);
     }
 
-    /**
-     * Scope untuk filter berdasarkan kategori
-     */
     public function scopeByCategory($query, $category)
     {
         return $query->where('kategori', $category);
     }
 
-    /**
-     * Scope untuk filter berdasarkan bagian
-     */
     public function scopeByBagian($query, $bagian)
     {
         return $query->where('bagian', $bagian);
     }
 
-    /**
-     * Increment views counter
-     */
     public function incrementViews()
     {
         $this->increment('views');
     }
 
-    /**
-     * Publish repository
-     */
     public function publish()
     {
         $this->update([
@@ -98,9 +73,6 @@ class Repository extends Model
         ]);
     }
 
-    /**
-     * Unpublish repository
-     */
     public function unpublish()
     {
         $this->update([

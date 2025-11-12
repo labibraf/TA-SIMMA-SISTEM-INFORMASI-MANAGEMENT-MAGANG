@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Carbon\Carbon;
+use App\Models\Penugasan;
 
 class Peserta extends Model
 {
@@ -60,7 +61,7 @@ class Peserta extends Model
 
         // +1 untuk membuatnya inklusif (Senin ke Jumat = 5 hari, bukan 4)
         $totalDays = $start->diffInDays($end) + 1;
-        
+
         // Hitung jumlah hari Sabtu dan Minggu
         $weekendDays = $start->diffInWeekendDays($end);
 
@@ -96,8 +97,77 @@ class Peserta extends Model
 
     public function getBisaLaporanAkhirAttribute()
     {
+        // Validasi 1: Cek target waktu sudah tercapai
         $targetWaktu = $this->target_method === 'sks' ? $this->target_bobot_tugas : $this->target_waktu_tugas;
-        return $this->waktu_tugas_tercapai >= $targetWaktu;
+        $targetTercapai = $this->waktu_tugas_tercapai >= $targetWaktu;
+
+        // Validasi 2: Cek semua tugas yang menyangkut peserta ini sudah selesai
+        $semuaTugasSelesai = $this->isSemuaTugasSelesai();
+
+        // Kedua syarat harus terpenuhi
+        return $targetTercapai && $semuaTugasSelesai;
+    }
+
+    /**
+     * Mengecek apakah semua tugas yang menyangkut peserta ini sudah selesai dan di-approve
+     */
+    public function isSemuaTugasSelesai()
+    {
+        // Ambil semua tugas yang menyangkut peserta ini
+        $tugasPeserta = $this->getTugasPeserta();
+
+        // Jika tidak ada tugas sama sekali, return true
+        if ($tugasPeserta->isEmpty()) {
+            return true;
+        }
+
+        // Cek apakah semua tugas sudah selesai (status_tugas = 'Selesai') dan di-approve (is_approved = 1)
+        $semuaSelesai = $tugasPeserta->every(function ($tugas) {
+            return $tugas->status_tugas === 'Selesai' && $tugas->is_approved == 1;
+        });
+
+        return $semuaSelesai;
+    }
+
+    /**
+     * Mendapatkan semua tugas yang menyangkut peserta ini
+     * Termasuk tugas individu dan tugas divisi
+     */
+    public function getTugasPeserta()
+    {
+        // Tugas individu: yang peserta_id-nya sama dengan peserta ini
+        $tugasIndividu = Penugasan::where('peserta_id', $this->id)
+            ->where('kategori', 'Individu')
+            ->get();
+
+        // Tugas divisi: yang bagian_id-nya sama dengan bagian peserta ini
+        // DAN peserta ini sudah di-assign ke tugas tersebut (melalui pivot table)
+        $tugasDivisi = Penugasan::where('kategori', 'Divisi')
+            ->whereHas('pesertasRelation', function($query) {
+                $query->where('peserta_id', $this->id);
+            })
+            ->get();
+
+        // Gabungkan kedua collection
+        return $tugasIndividu->merge($tugasDivisi);
+    }
+
+    /**
+     * Mendapatkan daftar tugas yang belum selesai untuk peserta ini
+     */
+    public function getTugasBelumSelesai()
+    {
+        return $this->getTugasPeserta()->filter(function ($tugas) {
+            return $tugas->status_tugas !== 'Selesai' || $tugas->is_approved != 1;
+        });
+    }
+
+    /**
+     * Accessor untuk mendapatkan jumlah tugas yang belum selesai
+     */
+    public function getJumlahTugasBelumSelesaiAttribute()
+    {
+        return $this->getTugasBelumSelesai()->count();
     }
 
     /**
@@ -156,19 +226,18 @@ class Peserta extends Model
 
     public function getProgressPercentageAttribute()
     {
-        // Tentukan target waktu (SKS atau Jam)
-        $targetWaktu = $this->target_method === 'sks' ? $this->target_bobot_tugas : $this->target_waktu_tugas;
+        // Progress bar menggunakan waktu_maksimum sebagai basis 100%
+        $waktuMaksimum = $this->waktu_maksimum;
 
-        // Jika target 0, progres adalah 0 untuk menghindari pembagian dengan nol
-        if ($targetWaktu == 0) {
+        // Jika waktu maksimum 0, progres adalah 0 untuk menghindari pembagian dengan nol
+        if ($waktuMaksimum == 0) {
             return 0;
         }
 
-        // Hitung persentase progres standar: (Tercapai / Target)
-        $percentage = ($this->waktu_tugas_tercapai / $targetWaktu) * 100;
+        // Hitung persentase progres: (Waktu Tercapai / Waktu Maksimum) × 100
+        $percentage = ($this->waktu_tugas_tercapai / $waktuMaksimum) * 100;
 
         // Batasi progres agar tidak melebihi 100%
-        // (Jika $percentage adalah 120%, fungsi min() akan mengembalikan 100)
         return round(min($percentage, 100), 2);
     }
 
@@ -371,6 +440,14 @@ class Peserta extends Model
     public function laporanAkhir()
     {
         return $this->hasMany(LaporanAkhir::class, 'peserta_id', 'id');
+    }
+
+    /**
+     * Relasi ke laporan harian
+     */
+    public function laporanHarian()
+    {
+        return $this->hasMany(LaporanHarian::class, 'peserta_id', 'id');
     }
 
     /**

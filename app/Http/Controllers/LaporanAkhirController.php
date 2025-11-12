@@ -8,11 +8,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use RealRashid\SweetAlert\Facades\Alert;
 use Illuminate\Support\Facades\Storage;
+use App\Repositories\Interfaces\RepositoryRepositoryInterface;
 
 class LaporanAkhirController extends Controller
 {
-    public function __construct()
+    protected $repositoryRepo;
+
+    public function __construct(RepositoryRepositoryInterface $repositoryRepo)
     {
+        $this->repositoryRepo = $repositoryRepo;
+
         $this->middleware('auth');
         $this->middleware(function ($request, $next) {
             $user = $request->user();
@@ -45,11 +50,16 @@ class LaporanAkhirController extends Controller
                 $waktuTercapai = $pesertaData->waktu_tugas_tercapai;
                 $sisaWaktu = $targetWaktu - $waktuTercapai;
 
+                // Ambil daftar tugas yang belum selesai
+                $tugasBelumSelesai = $pesertaData->getTugasBelumSelesai();
+
                 $alasanTidakBisa = [
                     'target' => $targetWaktu,
                     'tercapai' => $waktuTercapai,
                     'sisa' => $sisaWaktu,
-                    'progress' => $pesertaData->progress_percentage
+                    'progress' => $pesertaData->progress_percentage,
+                    'tugas_belum_selesai' => $tugasBelumSelesai,
+                    'jumlah_tugas_belum_selesai' => $tugasBelumSelesai->count(),
                 ];
             }
         }
@@ -98,7 +108,25 @@ class LaporanAkhirController extends Controller
 
         // Cek apakah memenuhi syarat membuat laporan akhir
         if (!$peserta->bisa_laporan_akhir) {
-            Alert::error('Tidak Dapat Membuat Laporan', 'Anda belum dapat membuat laporan akhir. Silakan selesaikan tugas terlebih dahulu.');
+            // Cek alasan spesifik kenapa tidak bisa
+            $targetWaktu = $peserta->target_method === 'sks'
+                ? $peserta->target_bobot_tugas
+                : $peserta->target_waktu_tugas;
+            $targetTercapai = $peserta->waktu_tugas_tercapai >= $targetWaktu;
+            $semuaTugasSelesai = $peserta->isSemuaTugasSelesai();
+
+            $pesan = 'Anda belum dapat membuat laporan akhir. ';
+
+            if (!$targetTercapai && !$semuaTugasSelesai) {
+                $pesan .= 'Target jam magang belum tercapai dan masih ada tugas yang belum selesai/di-approve.';
+            } elseif (!$targetTercapai) {
+                $pesan .= 'Target jam magang belum tercapai.';
+            } elseif (!$semuaTugasSelesai) {
+                $tugasBelum = $peserta->getTugasBelumSelesai();
+                $pesan .= 'Masih ada ' . $tugasBelum->count() . ' tugas yang belum selesai atau belum di-approve.';
+            }
+
+            Alert::error('Tidak Dapat Membuat Laporan', $pesan);
             return redirect()->route('laporan-akhir.index');
         }
 
@@ -215,6 +243,9 @@ class LaporanAkhirController extends Controller
             abort(403, 'AKSES DITOLAK: HANYA ADMIN YANG BISA MENGHAPUS LAPORAN.');
         }
 
+        // Hapus repository terkait jika ada
+        $this->repositoryRepo->deleteByLaporanAkhir($laporanAkhir->id);
+
         // Hapus file jika ada
         if ($laporanAkhir->file_path) {
             Storage::disk('public')->delete($laporanAkhir->file_path);
@@ -222,7 +253,7 @@ class LaporanAkhirController extends Controller
 
         $laporanAkhir->delete();
 
-        Alert::success('Berhasil', 'Laporan akhir berhasil dihapus.');
+        Alert::success('Berhasil', 'Laporan akhir dan repository terkait berhasil dihapus.');
         return redirect()->back();
     }
 
@@ -241,7 +272,46 @@ class LaporanAkhirController extends Controller
                 'status' => 'required|in:draft,review,terima,tolak',
             ]);
 
-            $laporanAkhir->update(['status' => $request->status]);
+            // Simpan status lama untuk pengecekan
+            $statusLama = $laporanAkhir->status;
+            $statusBaru = $request->status;
+
+            // Update status laporan
+            $laporanAkhir->update(['status' => $statusBaru]);
+
+            // LOGIC AUTO-CREATE REPOSITORY DRAFT
+            // Jika status berubah ke 'terima', otomatis buat draft repository
+            if ($statusLama !== 'terima' && $statusBaru === 'terima') {
+                try {
+                    // Ambil tahun magang dari tanggal_mulai_magang peserta atau default tahun sekarang
+                    $tahunMagang = date('Y');
+                    if ($laporanAkhir->peserta && $laporanAkhir->peserta->tanggal_mulai_magang) {
+                        $tahunMagang = date('Y', strtotime($laporanAkhir->peserta->tanggal_mulai_magang));
+                    }
+
+                    $this->repositoryRepo->createFromLaporanAkhir($laporanAkhir->id, [
+                        'judul' => $laporanAkhir->judul_laporan,
+                        'deskripsi' => $laporanAkhir->deskripsi_laporan,
+                        'tahun_magang' => $tahunMagang,
+                        'bagian' => $laporanAkhir->peserta->bagian->nama_bagian ?? null,
+                        'is_published' => false, // Draft, perlu review admin
+                    ]);
+
+                    Alert::success('Berhasil', 'Laporan diterima dan draft repository telah dibuat. Admin dapat me-review dan mempublikasikannya.');
+                } catch (\Exception $e) {
+                    // Jika sudah ada di repository, abaikan
+                    Alert::warning('Info', 'Laporan diterima. ' . $e->getMessage());
+                }
+            }
+
+            // LOGIC HAPUS REPOSITORY
+            // Jika status berubah dari 'terima' ke status lain, hapus dari repository
+            if ($statusLama === 'terima' && $statusBaru !== 'terima') {
+                $deleted = $this->repositoryRepo->deleteByLaporanAkhir($laporanAkhir->id);
+                if ($deleted) {
+                    Alert::info('Info', 'Repository terkait laporan ini telah dihapus karena status berubah.');
+                }
+            }
 
             $statusMessages = [
                 'draft' => 'Status laporan dikembalikan ke "Draft". Peserta dapat mengedit laporan kembali.',
@@ -250,7 +320,7 @@ class LaporanAkhirController extends Controller
                 'tolak' => 'Laporan akhir ditolak.'
             ];
 
-            $message = $statusMessages[$request->status] ?? 'Status laporan berhasil diperbarui.';
+            $message = $statusMessages[$statusBaru] ?? 'Status laporan berhasil diperbarui.';
         }
 
         // Update catatan mentor
@@ -310,7 +380,7 @@ class LaporanAkhirController extends Controller
 
             // Cek apakah memenuhi syarat membuat laporan akhir
             if (!$peserta->bisa_laporan_akhir) {
-                abort(403, 'Anda belum dapat membuat laporan akhir. Silakan selesaikan tugas terlebih dahulu.');
+                abort(403, 'Anda belum dapat membuat laporan akhir. Silakan selesaikan semua tugas terlebih dahulu dan pastikan semua sudah di-approve.');
             }
         }
     }

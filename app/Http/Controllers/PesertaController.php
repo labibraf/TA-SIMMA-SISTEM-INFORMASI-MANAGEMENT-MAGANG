@@ -433,7 +433,7 @@ class PesertaController extends Controller
     public function show($id)
     {
         // Eager load relasi yang dibutuhkan dan refresh data terbaru
-        $peserta = Peserta::with(['user', 'bagian', 'penugasan', 'mentor'])->findOrFail($id);
+        $peserta = Peserta::with(['user', 'bagian', 'penugasan', 'mentor', 'laporanHarian.penugasan'])->findOrFail($id);
 
         // Refresh data dari database untuk memastikan data terbaru
         $peserta->refresh();
@@ -441,7 +441,10 @@ class PesertaController extends Controller
         // Update waktu tugas tercapai jika diperlukan
         $peserta->updateWaktuTugasTercapai();
 
-        return view('peserta.show', compact('peserta'));
+        // Ambil semua tugas peserta (individu + divisi) menggunakan method getTugasPeserta()
+        $semuaTugas = $peserta->getTugasPeserta();
+
+        return view('peserta.show', compact('peserta', 'semuaTugas'));
     }
 
 

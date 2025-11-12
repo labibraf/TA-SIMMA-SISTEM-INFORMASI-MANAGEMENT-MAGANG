@@ -7,13 +7,13 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h2 class="text-center">Daftar Peserta Magang</h2>
             <a href="{{ route('peserta.create') }}" class="btn btn-primary">
-                (+) Tambah Peserta Magang
+                <i class="ti ti-plus"></i> Tambah Peserta Magang
             </a>
         </div>
         <div class="card-body">
             @if($peserta->isEmpty())
                 <div class="alert alert-info text-center">
-                    <i class="fas fa-info-circle"></i> Belum ada data peserta magang.
+                    <i class="ti ti-info-circle"></i> Belum ada data peserta magang.
                 </div>
             @else
                 <div class="table-responsive">
@@ -29,14 +29,13 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {{-- Hapus @forelse dan @empty, gunakan @foreach saja --}}
                             @foreach($peserta as $index => $item)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
                                     <td>
                                         {{ $item->nama_lengkap }}
                                         @if($item->is_laporan_akhir_selesai)
-                                            <br><span class="badge bg-success"><i class="fas fa-check"></i> Selesai</span>
+                                            <br><span class="badge bg-success"><i class="ti ti-check"></i> Selesai</span>
                                         @endif
                                     </td>
                                     <td>{{ $item->bagian?->nama_bagian ?? '-' }}</td>
@@ -51,8 +50,8 @@
                                     <td class="text-center">
                                         @if($item->foto)
                                             <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
-                                                data-bs-target="#modalFoto{{ $item->id }}"> {{-- Gunakan id --}}
-                                                <i class="fas fa-image"></i> Lihat
+                                                data-bs-target="#modalFoto{{ $item->id }}">
+                                                <i class="ti ti-photo"></i> Lihat
                                             </button>
                                         @else
                                             <span class="badge bg-secondary">Tidak ada</span>
@@ -60,35 +59,34 @@
                                     </td>
                                     <td class="text-center">
                                         <div class="btn-group" role="group">
-                                            <a href="{{ route('peserta.show', $item->id) }}" {{-- Gunakan peserta_id --}}
+                                            <a href="{{ route('peserta.show', $item->id) }}"
                                                class="btn btn-info btn-sm" title="Detail">
-                                                <i class="fas fa-eye"></i>
+                                                <i class="ti ti-eye"></i>
                                             </a>
-                                            <a href="{{ route('peserta.edit', $item->id) }}" {{-- Gunakan peserta_id --}}
+                                            <a href="{{ route('peserta.edit', $item->id) }}"
                                                class="btn btn-warning btn-sm"
                                                title="{{ $item->is_laporan_akhir_selesai ? 'Edit (Data Akademis Terkunci)' : 'Edit' }}">
-                                                <i class="fas fa-edit"></i>
+                                                <i class="ti ti-edit"></i>
                                                 @if($item->is_laporan_akhir_selesai)
-                                                    <i class="fas fa-lock"></i>
+                                                    <i class="ti ti-lock"></i>
                                                 @endif
                                             </a>
                                             <button type="button" class="btn btn-danger btn-sm"
-                                                    data-bs-toggle="modal" data-bs-target="#confirmDeleteModal{{ $item->id }}" {{-- Gunakan peserta_id --}}
+                                                    data-bs-toggle="modal" data-bs-target="#confirmDeleteModal{{ $item->id }}"
                                                     title="Hapus">
-                                                <i class="fas fa-trash"></i>
+                                                <i class="ti ti-trash"></i>
                                             </button>
                                         </div>
                                     </td>
                                 </tr>
                             @endforeach
-                            {{-- Hapus @empty dan @endforelse --}}
                         </tbody>
                     </table>
                 </div>
 
                 {{-- Modal Konfirmasi Hapus --}}
                 @foreach($peserta as $item)
-                    <div class="modal fade" id="confirmDeleteModal{{ $item->id }}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true"> {{-- Gunakan id --}}
+                    <div class="modal fade" id="confirmDeleteModal{{ $item->id }}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header bg-danger text-white">
@@ -101,7 +99,7 @@
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                    <form action="{{ route('peserta.destroy', $item->id) }}" method="POST"> {{-- Gunakan id --}}
+                                    <form action="{{ route('peserta.destroy', $item->id) }}" method="POST">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-danger">Hapus</button>
@@ -115,7 +113,7 @@
                 {{-- Modal Foto --}}
                 @foreach ($peserta as $item)
                     @if($item->foto)
-                        <div class="modal fade" id="modalFoto{{ $item->id }}" tabindex="-1" aria-labelledby="fotoModalLabel{{ $item->id }}" aria-hidden="true"> {{-- Gunakan id --}}
+                        <div class="modal fade" id="modalFoto{{ $item->id }}" tabindex="-1" aria-labelledby="fotoModalLabel{{ $item->id }}" aria-hidden="true">
                             <div class="modal-dialog modal-lg">
                                 <div class="modal-content">
                                     <div class="modal-header">
@@ -136,7 +134,7 @@
                     @endif
                 @endforeach
 
-            @endif {{-- Akhir dari @if($peserta->isEmpty()) --}}
+            @endif
         </div>
     </div>
 </div>

@@ -482,7 +482,7 @@
                                     <td colspan="6" class="text-center py-5">
                                         <i class="ti ti-file-off fs-1 text-muted d-block mb-2"></i>
                                         <p class="text-muted mb-0">Belum ada laporan harian</p>
-                                        <a href="{{ route('laporan-harian.create') }}" class="btn btn-sm btn-primary mt-2">
+                                        <a href="{{ route('laporan_harian.create') }}" class="btn btn-sm btn-primary mt-2">
                                             <i class="ti ti-plus me-1"></i>Buat Laporan Pertama
                                         </a>
                                     </td>

@@ -45,6 +45,11 @@ interface RepositoryRepositoryInterface
     public function createFromLaporanAkhir($laporanAkhirId, array $data);
 
     /**
+     * Buat repository baru dari upload manual (tanpa laporan akhir)
+     */
+    public function createManual(array $data);
+
+    /**
      * Update repository
      */
     public function update($id, array $data);
@@ -53,6 +58,12 @@ interface RepositoryRepositoryInterface
      * Hapus repository
      */
     public function delete($id);
+
+    /**
+     * Hapus repository berdasarkan laporan akhir ID
+     * Digunakan ketika status laporan akhir berubah atau ditolak
+     */
+    public function deleteByLaporanAkhir($laporanAkhirId);
 
     /**
      * Publish repository

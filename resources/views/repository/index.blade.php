@@ -108,7 +108,7 @@
                     <form method="GET" action="{{ route('repository.index') }}" id="filterForm">
                         <div class="row g-3">
                             {{-- Search --}}
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="input-group">
                                     <span class="input-group-text bg-white">
                                         <i class="fas fa-search"></i>
@@ -121,9 +121,20 @@
                                 </div>
                             </div>
 
+                            @if(Auth::user()->isAdmin())
+                                {{-- Filter Status (Admin Only) --}}
+                                <div class="col-md-2">
+                                    <select name="status" class="form-select">
+                                        <option value="">Semua Status</option>
+                                        <option value="published" {{ request('status') == 'published' ? 'selected' : '' }}>Published</option>
+                                        <option value="draft" {{ request('status') == 'draft' ? 'selected' : '' }}>Draft</option>
+                                    </select>
+                                </div>
+                            @endif
+
                             {{-- Filter Tahun --}}
                             <div class="col-md-2">
-                                <select name="year" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                                <select name="year" class="form-select">
                                     <option value="">Semua Tahun</option>
                                     @foreach($years as $year)
                                         <option value="{{ $year }}" {{ request('year') == $year ? 'selected' : '' }}>
@@ -133,35 +144,36 @@
                                 </select>
                             </div>
 
-                            {{-- Filter Kategori --}}
-                            <div class="col-md-2">
-                                <select name="category" class="form-select" onchange="document.getElementById('filterForm').submit()">
-                                    <option value="">Semua Kategori</option>
-                                    @foreach($categories as $category)
-                                        <option value="{{ $category }}" {{ request('category') == $category ? 'selected' : '' }}>
-                                            {{ $category }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
 
-                            {{-- Filter Bagian --}}
-                            <div class="col-md-2">
-                                <select name="bagian" class="form-select" onchange="document.getElementById('filterForm').submit()">
-                                    <option value="">Semua Bagian</option>
-                                    @foreach($bagians as $bagian)
-                                        <option value="{{ $bagian->nama_bagian }}" {{ request('bagian') == $bagian->nama_bagian ? 'selected' : '' }}>
-                                            {{ $bagian->nama_bagian }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
+                                {{-- Filter Kategori (Admin Only) --}}
+                                <div class="col-md-2">
+                                    <select name="category" class="form-select">
+                                        <option value="">Semua Kategori</option>
+                                        @foreach($categories as $category)
+                                            <option value="{{ $category }}" {{ request('category') == $category ? 'selected' : '' }}>
+                                                {{ $category }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                {{-- Filter Bagian (Admin Only) --}}
+                                <div class="col-md-2">
+                                    <select name="bagian" class="form-select"">
+                                        <option value="">Semua Bagian</option>
+                                        @foreach($bagians as $bagian)
+                                            <option value="{{ $bagian->nama_bagian }}" {{ request('bagian') == $bagian->nama_bagian ? 'selected' : '' }}>
+                                                {{ $bagian->nama_bagian }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
 
                             {{-- Button Search & Reset --}}
-                            <div class="col-md-2">
+                            <div class="col-md-{{ Auth::user()->isAdmin() ? '1' : '3' }}">
                                 <div class="d-flex gap-2">
                                     <button type="submit" class="btn btn-primary flex-fill">
-                                        <i class="fas fa-search me-1"></i>Cari
+                                        <i class="fas fa-search me-1"></i>{{ Auth::user()->isAdmin() ? '' : 'Cari' }}
                                     </button>
                                     <a href="{{ route('repository.index') }}" class="btn btn-secondary">
                                         <i class="fas fa-redo"></i>
@@ -177,9 +189,11 @@
 
     {{-- Repository List --}}
     <div class="row">
+        {{-- cek apakah laporan akhir statusnya di terima atau belum --}}
+        @if($repositories->isNotEmpty())
         @forelse($repositories as $repo)
         <div class="col-md-6 col-lg-4 mb-4">
-            <div class="card h-100 border-0 shadow-sm repository-card">
+            <div class="card h-100 border-0 shadow-sm repository-card {{ !$repo->is_published ? 'border-warning border-2' : '' }}">
                 <div class="card-body d-flex flex-column">
                     {{-- Badge Status & Views --}}
                     <div class="d-flex justify-content-between align-items-start mb-3">
@@ -189,8 +203,8 @@
                                     <i class="fas fa-check-circle me-1"></i>Published
                                 </span>
                             @else
-                                <span class="badge bg-warning">
-                                    <i class="fas fa-clock me-1"></i>Draft
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-clock me-1"></i>Draft - Perlu Review
                                 </span>
                             @endif
 
@@ -220,7 +234,7 @@
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="text-muted small">
                                 <i class="fas fa-user me-1"></i>
-                                {{ $repo->peserta->nama_lengkap ?? ($repo->peserta->user->name ?? 'N/A') }}
+                                {{ $repo->peserta ? ($repo->peserta->nama_lengkap ?? ($repo->peserta->user->name ?? 'N/A')) : ($repo->nama_peserta ?? 'N/A') }}
                             </span>
                             <span class="text-muted small">
                                 <i class="fas fa-calendar me-1"></i>
@@ -237,19 +251,34 @@
 
                         {{-- Action Buttons --}}
                         <div class="d-flex gap-2 mt-3">
-                            <a href="{{ route('repository.show', $repo->id) }}" class="btn btn-sm btn-primary flex-fill">
-                                <i class="fas fa-eye me-1"></i>Lihat Detail
-                            </a>
-
                             @if(Auth::user()->isAdmin())
+                                @if(!$repo->is_published)
+                                    {{-- Tombol Quick Publish untuk Draft --}}
+                                    <form action="{{ route('repository.publish', $repo->id) }}" method="POST" class="flex-fill">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="btn btn-sm btn-success w-100">
+                                            <i class="fas fa-rocket me-1"></i>Publish
+                                        </button>
+                                    </form>
+                                @endif
+
+                                <a href="{{ route('repository.show', $repo->id) }}" class="btn btn-sm btn-primary {{ $repo->is_published ? 'flex-fill' : '' }}">
+                                    <i class="fas fa-eye me-1"></i>Detail
+                                </a>
+
                                 <div class="btn-group" role="group">
-                                    <a href="{{ route('repository.edit', $repo->id) }}" class="btn btn-sm btn-warning">
+                                    <a href="{{ route('repository.edit', $repo->id) }}" class="btn btn-sm btn-warning" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <button type="button" class="btn btn-sm btn-danger" onclick="confirmDelete({{ $repo->id }})">
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="confirmDelete({{ $repo->id }})" title="Hapus">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
+                            @else
+                                <a href="{{ route('repository.show', $repo->id) }}" class="btn btn-sm btn-primary flex-fill">
+                                    <i class="fas fa-eye me-1"></i>Lihat Detail
+                                </a>
                             @endif
                         </div>
                     </div>
@@ -272,6 +301,7 @@
                 </div>
             </div>
         </div>
+        @endif
         @endforelse
     </div>
 </div>

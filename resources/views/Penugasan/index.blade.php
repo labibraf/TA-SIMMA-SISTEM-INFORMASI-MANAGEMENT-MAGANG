@@ -62,6 +62,9 @@
                                             <a href="{{ route('penugasans.show', $item->id) }}" class="text-decoration-none judul-tugas">
                                                 {{ $item->judul_tugas }}
                                             </a>
+                                            @if($item->approved_by_mentor == 1)
+                                            <br><span class="badge bg-success"><i class="fas fa-check"></i> Selesai</span>
+                                            @endif
                                         </td>
                                         <td>{{ $item->deadline ? $item->deadline->format('d M Y') : '-' }}</td>
                                         <td>{{ $item->beban_waktu ?? '-' }} Jam</td>
@@ -108,6 +111,9 @@
                                                 Divisi {{ $item->bagian->nama_bagian }}
                                             @else
                                                 -
+                                            @endif
+                                            @if($item->is_approved == 1 && ($item->peserta || $item->bagian))
+                                                <br><span class="badge bg-success mt-1"><i class="fas fa-check me-1"></i> Selesai</span>
                                             @endif
                                         </td>
                                         <td>

@@ -11,7 +11,7 @@
 
 
   <!-- [Favicon] icon -->
-  <link rel="icon" href="{{ asset('template/dist') }}/assets/images/logo-2.png" type="image/x-icon"> <!-- [Google Font] Family -->
+  <link rel="icon" href="{{ asset('template/dist') }}/assets/images/simma-w-xl.png" type="image/x-icon"> <!-- [Google Font] Family -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap" id="main-font-link">
 <!-- [Tabler Icons] https://tablericons.com -->
 <link rel="stylesheet" href="{{ asset('template/dist') }}/assets/fonts/tabler-icons.min.css" >
@@ -41,10 +41,12 @@
   <div class="auth-main">
     <div class="auth-wrapper v3">
       <div class="auth-form">
-        <div class="auth-header justify-content-center">
-          <a href="#"><img src="{{ asset('template/dist') }}/assets/images/logo-3.png" class="img-fluid" style="max-width: auto; max-height: 150px;" alt="img"></a>
+        <div class="auth-header justify-content-center mt-5">
+        <a href="#"><img src="{{ asset('template/dist') }}/assets/images/simma-w-xl.png"
+            style="height: auto; max-height: 200px; width: auto; max-width: 400px; display: block;"
+            alt="img"></a>
         </div>
-        <div class="card my-3">
+        <div class="card my-2">
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-end mb-4">
               <h3 class="mb-0"><b>Login</b></h3>
@@ -77,16 +79,6 @@
         </form>
         <div class="auth-footer row">
           <!-- <div class=""> -->
-            <div class="col my-1">
-              <p class="m-0"></p>
-            </div>
-            <div class="col-auto my-1">
-              <ul class="list-inline footer-link mb-0">
-                <li class="list-inline-item"><a href="#">Home</a></li>
-                <li class="list-inline-item"><a href="#">Privacy Policy</a></li>
-                <li class="list-inline-item"><a href="#">Contact us</a></li>
-              </ul>
-            </div>
           <!-- </div> -->
         </div>
       </div>

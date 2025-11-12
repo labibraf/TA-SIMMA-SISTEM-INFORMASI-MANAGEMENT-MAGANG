@@ -405,13 +405,37 @@ class PenugasanController extends Controller
 
         // Logic untuk pembatasan status
         if ($user->isPeserta()) {
-            // Ambil progress terakhir
-            $latestLaporan = LaporanHarian::where('penugasan_id', $id)->latest()->first();
-            $currentProgress = $latestLaporan ? $latestLaporan->progres_tugas : 0;
+            $currentProgress = 0;
+
+            // Hitung progress berdasarkan kategori penugasan
+            if ($penugasan->kategori === 'Divisi') {
+                // Untuk tugas divisi: hitung rata-rata dari progress tertinggi setiap peserta
+                $pesertaList = $penugasan->pesertas();
+                $totalProgress = 0;
+                $jumlahPeserta = $pesertaList->count();
+
+                if ($jumlahPeserta > 0) {
+                    foreach ($pesertaList as $peserta) {
+                        // Ambil progress tertinggi untuk setiap peserta
+                        $maxProgress = LaporanHarian::where('penugasan_id', $id)
+                            ->where('peserta_id', $peserta->id)
+                            ->max('progres_tugas') ?? 0;
+                        $totalProgress += $maxProgress;
+                    }
+                    // Rata-rata dari progress tertinggi setiap peserta
+                    $currentProgress = $totalProgress / $jumlahPeserta;
+                } else {
+                    $currentProgress = 0;
+                }
+            } else {
+                // Untuk tugas individu: ambil progress tertinggi dari laporan peserta yang bersangkutan
+                $currentProgress = LaporanHarian::where('penugasan_id', $id)
+                    ->where('peserta_id', $user->peserta->id)
+                    ->max('progres_tugas') ?? 0;
+            }
 
             // Peserta hanya bisa mengubah status saat progress 100%
             if ($currentProgress == 100) {
-                // Hanya izinkan 'Belum' atau 'Selesai'
                 if (in_array($request->status_tugas, ['Belum', 'Selesai'])) {
                     $penugasan->status_tugas = $request->status_tugas;
                     $penugasan->save();
@@ -524,20 +548,53 @@ class PenugasanController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
 
+        // Inisialisasi variabel
+        $currentProgress = 0;
+        $rataRataProgressDivisi = 0;
+        $pesertaList = collect();
+
         // Hitung progress berdasarkan kategori penugasan
         if ($penugasan->kategori === 'Divisi') {
-            // Untuk penugasan Divisi: ambil progress tertinggi dari semua laporan
-            $currentProgress = $laporanHarians->max('progres_tugas') ?? 0;
+            // Untuk penugasan Divisi: hitung rata-rata dari progress tertinggi setiap peserta
+            $pesertaList = $penugasan->pesertas();
+            $totalProgress = 0;
+            $jumlahPeserta = $pesertaList->count();
 
-            // Ambil laporan dengan progress tertinggi sebagai laporan referensi
-            $latestLaporan = $laporanHarians->where('progres_tugas', $currentProgress)->last();
-        } else {
-            // Untuk penugasan Individu: ambil progress dari laporan terbaru
+            if ($jumlahPeserta > 0) {
+                foreach ($pesertaList as $peserta) {
+                    // Ambil progress tertinggi untuk setiap peserta
+                    $maxProgress = LaporanHarian::where('penugasan_id', $id)
+                        ->where('peserta_id', $peserta->id)
+                        ->max('progres_tugas') ?? 0;
+
+                    // Tambahkan property progress ke objek peserta
+                    $peserta->progress = $maxProgress;
+                    $totalProgress += $maxProgress;
+                }
+                // Rata-rata dari progress tertinggi setiap peserta
+                $rataRataProgressDivisi = $totalProgress / $jumlahPeserta;
+                $currentProgress = $rataRataProgressDivisi;
+            } else {
+                $currentProgress = 0;
+                $rataRataProgressDivisi = 0;
+            }
+
+            // Ambil laporan terbaru sebagai referensi
             $latestLaporan = $laporanHarians->last();
-            $currentProgress = $latestLaporan ? $latestLaporan->progres_tugas : 0;
+        } else {
+            // Untuk penugasan Individu: ambil progress tertinggi dari laporan
+            $currentProgress = $laporanHarians->max('progres_tugas') ?? 0;
+            $latestLaporan = $laporanHarians->where('progres_tugas', $currentProgress)->last();
         }
 
-        return view('Penugasan.show', compact('penugasan', 'laporanHarians', 'currentProgress', 'latestLaporan'));
+        return view('Penugasan.show', compact(
+            'penugasan',
+            'laporanHarians',
+            'currentProgress',
+            'latestLaporan',
+            'pesertaList',
+            'rataRataProgressDivisi'
+        ));
     }
 
     public function destroy(Penugasan $penugasan)

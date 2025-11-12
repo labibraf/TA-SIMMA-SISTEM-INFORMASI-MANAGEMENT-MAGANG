@@ -108,7 +108,7 @@ class RepositoryRepository implements RepositoryRepositoryInterface
         // Cek apakah laporan akhir sudah di-ACC
         $laporanAkhir = LaporanAkhir::with('peserta')->findOrFail($laporanAkhirId);
 
-        if ($laporanAkhir->status !== 'diterima') {
+        if ($laporanAkhir->status !== 'terima') {
             throw new \Exception('Hanya laporan akhir yang sudah diterima yang bisa dipublikasikan ke repository.');
         }
 
@@ -130,6 +130,29 @@ class RepositoryRepository implements RepositoryRepositoryInterface
             'kategori' => $data['kategori'] ?? null,
             'is_published' => $data['is_published'] ?? false,
             'published_at' => isset($data['is_published']) && $data['is_published'] ? now() : null,
+        ]);
+    }
+
+    /**
+     * Buat repository baru dari upload manual (tanpa laporan akhir)
+     * Untuk mengarsipkan laporan dari tahun-tahun sebelumnya atau dokumen eksternal
+     */
+    public function createManual(array $data)
+    {
+        // Buat repository baru tanpa relasi ke laporan_akhir
+        return $this->model->create([
+            'laporan_akhir_id' => null,
+            'peserta_id' => null,
+            'judul' => $data['judul'],
+            'deskripsi' => $data['deskripsi'],
+            'deskripsi_lengkap' => $data['deskripsi_lengkap'] ?? null,
+            'tahun_magang' => $data['tahun_magang'],
+            'bagian' => $data['bagian'] ?? null,
+            'kategori' => $data['kategori'] ?? null,
+            'is_published' => $data['is_published'] ?? false,
+            'published_at' => isset($data['is_published']) && $data['is_published'] ? now() : null,
+            'file_path' => $data['file_path'],
+            'nama_peserta' => $data['nama_peserta'], // Nama peserta disimpan sebagai string
         ]);
     }
 
@@ -160,6 +183,25 @@ class RepositoryRepository implements RepositoryRepositoryInterface
     {
         $repository = $this->model->findOrFail($id);
         return $repository->delete();
+    }
+
+    /**
+     * Hapus repository berdasarkan laporan akhir ID
+     * Digunakan ketika status laporan akhir berubah dari 'diterima' menjadi status lain
+     * atau ketika laporan akhir ditolak/diubah
+     *
+     * @param int $laporanAkhirId
+     * @return bool
+     */
+    public function deleteByLaporanAkhir($laporanAkhirId)
+    {
+        $repository = $this->model->where('laporan_akhir_id', $laporanAkhirId)->first();
+
+        if ($repository) {
+            return $repository->delete();
+        }
+
+        return false;
     }
 
     /**
