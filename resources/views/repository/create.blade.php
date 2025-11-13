@@ -19,7 +19,7 @@
         <div class="col-lg-10">
             {{-- Header Card --}}
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body bg-gradient-primary text-white p-4">
+                <div class="card-body bg-blue-200  p-4">
                     <h3 class="mb-2">
                         <i class="fas fa-plus-circle me-2"></i>Tambah Repository Baru
                     </h3>
@@ -49,12 +49,11 @@
                                     <i class="fas fa-upload me-2"></i>Upload Manual dari Lokal
                                 </label>
                             </div>
-                            <small class="form-text text-muted d-block mt-2">
+                            <p class="form-text text-muted d-block mt-2">
                                 <strong>Dari Sistem:</strong> Pilih laporan yang sudah ada di database.
                                 <strong>Upload Manual:</strong> Untuk arsip laporan lama atau dokumen eksternal.
-                            </small>
+                            </p>
                         </div>
-
                         <hr class="my-4">
 
                         {{-- FROM SYSTEM MODE --}}
@@ -64,7 +63,7 @@
                                 <h6 class="alert-heading">
                                     <i class="fas fa-exclamation-triangle me-2"></i>Tidak Ada Laporan Akhir yang Tersedia
                                 </h6>
-                                <p class="mb-0 small">
+                                <p class="mb-0 medium">
                                     Semua laporan akhir yang sudah di-ACC telah dipublikasikan ke repository.
                                     Gunakan mode "Upload Manual" untuk menambahkan laporan dari luar sistem.
                                 </p>

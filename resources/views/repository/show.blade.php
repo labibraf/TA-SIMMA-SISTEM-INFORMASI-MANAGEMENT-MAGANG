@@ -3,17 +3,6 @@
 
 @section('content')
 <div class="container-fluid">
-    {{-- Breadcrumb --}}
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="{{ route('repository.index') }}">
-                    <i class="fas fa-book-open me-1"></i>Repository
-                </a>
-            </li>
-            <li class="breadcrumb-item active" aria-current="page">{{ Str::limit($repository->judul, 50) }}</li>
-        </ol>
-    </nav>
 
     <div class="row">
         {{-- Main Content --}}
@@ -50,7 +39,7 @@
                     <h2 class="mb-4">{{ $repository->judul }}</h2>
 
                     {{-- Deskripsi Singkat --}}
-                    <div class="alert alert-light border-start border-primary border-1 mb-4">
+                    <div class="alert alert-light border-start border-black border-1 mb-4">
                         <h6 class="mb-2"><i class="fas fa-info-circle me-2"></i>Deskripsi Singkat</h6>
                         <p class="mb-0">{{ $repository->deskripsi }}</p>
                     </div>
@@ -61,17 +50,17 @@
                         <h5 class="mb-3">
                             <i class="fas fa-file-alt me-2"></i>Deskripsi Lengkap
                         </h5>
-                        <div class="bg-light p-4 rounded">
+                        <div class="bg-gray-200 p-4 rounded">
                             {!! nl2br(e($repository->deskripsi_lengkap)) !!}
                         </div>
                     </div>
                     @endif
 
                     {{-- Laporan Akhir Section --}}
-                    <div class="card border-primary mb-4">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0 text-white">
-                                <i class="fas fa-file-pdf me-2 "></i>Laporan Akhir
+                    <div class="card border-2 mb-4">
+                        <div class="card-header bg-blue-100 text-blue-800">
+                            <h5 class="mb-0 text-blue-800">
+                                <i class="fas fa-file-pdf me-2"></i>Laporan Akhir
                             </h5>
                         </div>
                         <div class="card-body">
@@ -83,7 +72,7 @@
                                         <p class="text-muted mb-2">
                                             {{ $repository->laporanAkhir->deskripsi_laporan }}
                                         </p>
-                                        <div class="text-muted small">
+                                        <div class="text-muted">
                                             <i class="fas fa-user me-2"></i>
                                             <strong>Pembimbing:</strong> {{ $repository->laporanAkhir->mentor->nama_mentor ?? 'N/A' }}
                                         </div>
@@ -97,7 +86,7 @@
                                             </a>
                                         @else
                                             <button class="btn btn-secondary btn-lg" disabled>
-                                                <i class="fas fa-file-excel me-2"></i>File Tidak Tersedia
+                                                <i class="fas fa-times-circle me-2"></i>File Tidak Tersedia
                                             </button>
                                         @endif
                                     </div>
@@ -148,14 +137,14 @@
                                 </a>
 
                                 @if($repository->is_published)
-                                    <form method="POST" action="{{ route('repository.unpublish', $repository->id) }}" style="display: inline;">
+                                    <form method="POST" action="{{ route('repository.unpublish', $repository->id) }}" class="d-inline">
                                         @csrf
                                         <button type="submit" class="btn btn-secondary" onclick="return confirm('Yakin ingin unpublish repository ini?')">
                                             <i class="fas fa-eye-slash me-1"></i>Unpublish
                                         </button>
                                     </form>
                                 @else
-                                    <form method="POST" action="{{ route('repository.publish', $repository->id) }}" style="display: inline;">
+                                    <form method="POST" action="{{ route('repository.publish', $repository->id) }}" class="d-inline">
                                         @csrf
                                         <button type="submit" class="btn btn-success" onclick="return confirm('Yakin ingin publish repository ini?')">
                                             <i class="fas fa-check-circle me-1"></i>Publish
@@ -174,108 +163,96 @@
             </div>
         </div>
 
-        {{-- Sidebar --}}
-        <div class="col-lg-4">
-            {{-- Author Information --}}
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white border-bottom">
-                    <h6 class="mb-0">
-                        <i class="fas fa-user-circle me-2"></i>Informasi Penulis
-                    </h6>
-                </div>
-                <div class="card-body">
-                    @if($repository->peserta)
-                        {{-- Dari Sistem --}}
+            {{-- Sidebar --}}
+            <div class="col-lg-4">
+                {{-- Author Information --}}
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom">
+                        <h6 class="mb-0">
+                            <i class="fas fa-user-circle me-2"></i>Informasi Penulis
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        {{-- Author Info - Unified untuk sistem & manual --}}
                         <div class="d-flex align-items-center mb-3">
-                            <div class="avatar-circle bg-primary text-white me-3">
-                                {{ strtoupper(substr($repository->peserta->nama_lengkap ?? ($repository->peserta->user->name ?? 'N'), 0, 1)) }}
+                            <div class="avatar-circle {{ $repository->is_manual ? 'bg-success' : 'bg-primary' }} text-white me-3">
+                                {{ strtoupper(substr($repository->nama_peserta_lengkap, 0, 1)) }}
                             </div>
                             <div>
-                                <h6 class="mb-0">{{ $repository->peserta->nama_lengkap ?? ($repository->peserta->user->name ?? 'N/A') }}</h6>
-                                <small class="text-muted">Peserta Magang</small>
+                                <h6 class="mb-0">{{ $repository->nama_peserta_lengkap }}</h6>
+                                <small class="text-muted">
+                                    Peserta Magang
+                                    @if($repository->is_manual)
+                                        <span class="badge bg-success ms-1">Arsip</span>
+                                    @endif
+                                </small>
                             </div>
                         </div>
 
                         <div class="border-top pt-3">
+                            @if($repository->peserta && $repository->peserta->email)
                             <div class="mb-2">
                                 <i class="fas fa-envelope text-muted me-2"></i>
-                                <small>{{ $repository->peserta->email ?? 'N/A' }}</small>
+                                <small>{{ $repository->peserta->email }}</small>
                             </div>
+                            @endif
+
+
                             @if($repository->bagian)
                             <div class="mb-2">
                                 <i class="fas fa-building text-muted me-2"></i>
                                 <small>{{ $repository->bagian }}</small>
                             </div>
                             @endif
+
                             <div class="mb-2">
                                 <i class="fas fa-calendar text-muted me-2"></i>
                                 <small>Tahun Magang: {{ $repository->tahun_magang }}</small>
                             </div>
+
                             <div>
                                 <i class="fas fa-clock text-muted me-2"></i>
                                 <small>Dipublikasikan: {{ $repository->published_at ? $repository->published_at->format('d M Y') : '-' }}</small>
                             </div>
                         </div>
-                    @else
-                        {{-- Dari Upload Manual --}}
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="avatar-circle bg-success text-white me-3">
-                                {{ strtoupper(substr($repository->nama_peserta ?? 'N', 0, 1)) }}
-                            </div>
-                            <div>
-                                <h6 class="mb-0">{{ $repository->nama_peserta ?? 'N/A' }}</h6>
-                                <small class="text-muted">Peserta Magang (Arsip)</small>
-                            </div>
-                        </div>
-
-                        <div class="border-top pt-3">
-                            @if($repository->bagian)
-                            <div class="mb-2">
-                                <i class="fas fa-building text-muted me-2"></i>
-                                <small>{{ $repository->bagian }}</small>
-                            </div>
-                            @endif
-                            <div class="mb-2">
-                                <i class="fas fa-calendar text-muted me-2"></i>
-                                <small>Tahun Magang: {{ $repository->tahun_magang }}</small>
-                            </div>
-                            <div>
-                                <i class="fas fa-clock text-muted me-2"></i>
-                                <small>Dipublikasikan: {{ $repository->published_at ? $repository->published_at->format('d M Y') : '-' }}</small>
-                            </div>
-                        </div>
-                    @endif
-                </div>
-            </div>
-
-            {{-- Related Repository --}}
-            @if($relatedRepositories->isNotEmpty())
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom">
-                    <h6 class="mb-0">
-                        <i class="fas fa-link me-2"></i>Repository Terkait
-                    </h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="list-group list-group-flush">
-                        @foreach($relatedRepositories as $related)
-                        <a href="{{ route('repository.show', $related->id) }}"
-                           class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-1">{{ Str::limit($related->judul, 50) }}</h6>
-                                    <small class="text-muted">
-                                        <i class="fas fa-user me-1"></i>{{ $related->peserta->nama_lengkap ?? ($related->peserta->user->name ?? 'N/A') }}
-                                    </small>
-                                </div>
-                                <span class="badge bg-primary">{{ $related->tahun_magang }}</span>
-                            </div>
-                        </a>
-                        @endforeach
                     </div>
                 </div>
+                {{-- Related Repository --}}
+                    @if($relatedRepositories->isNotEmpty())
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white border-bottom">
+                            <h6 class="mb-0">
+                                <i class="fas fa-link me-2"></i>Repository Terkait
+                            </h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush">
+                                @foreach($relatedRepositories as $related)
+                                <a href="{{ route('repository.show', $related->id) }}"
+                                   class="list-group-item list-group-item-action">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1 text-break">{{ $related->judul }}</h6>
+                                            <small class="text-muted">
+                                                <i class="fas fa-user me-1"></i>{{ $related->nama_peserta_lengkap }}
+                                            </small>
+                                        </div>
+                                        <div class="ms-2 flex-shrink-0">
+                                            <span class="badge bg-primary">{{ $related->tahun_magang }}</span>
+                                            @if($related->is_manual)
+                                                <span class="badge bg-success ms-1">
+                                                    <i class="fas fa-archive"></i>
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                    @endif
             </div>
-            @endif
         </div>
     </div>
 </div>
@@ -298,7 +275,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                <form method="POST" action="{{ route('repository.destroy', $repository->id) }}" style="display: inline;">
+                <form method="POST" action="{{ route('repository.destroy', $repository->id) }}" class="d-inline">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="btn btn-danger">Hapus</button>
@@ -309,6 +286,7 @@
 </div>
 @endif
 
+@push('styles')
 <style>
     .avatar-circle {
         width: 50px;
@@ -324,12 +302,20 @@
     .list-group-item-action:hover {
         background-color: #f8f9fa;
     }
-</style>
 
+    .text-break {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+</style>
+@endpush
+
+@push('scripts')
 <script>
     function confirmDelete() {
         const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
         modal.show();
     }
 </script>
+@endpush
 @endsection

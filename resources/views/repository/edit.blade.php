@@ -24,7 +24,7 @@
         <div class="col-lg-10">
             {{-- Header Card --}}
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body bg-gradient-warning text-white p-4">
+                <div class="card-body bg-orange-200 text-orange-800 p-4">
                     <h3 class="mb-2">
                         <i class="fas fa-edit me-2"></i>Edit Repository
                     </h3>
@@ -34,8 +34,8 @@
 
             {{-- Info Laporan Akhir --}}
             @if($repository->laporanAkhir)
-            <div class="card border-primary mb-4">
-                <div class="card-header bg-primary text-white">
+            <div class="card border-2 mb-4">
+                <div class="card-header bg-orange-100 text-orange-800">
                     <h6 class="mb-0">
                         <i class="fas fa-info-circle me-2"></i>Informasi Laporan Akhir Terkait
                     </h6>
@@ -65,8 +65,8 @@
                 </div>
             </div>
             @else
-            <div class="card border-success mb-4">
-                <div class="card-header bg-success text-white">
+            <div class="card border-2 mb-4">
+                <div class="card-header bg-orange-100 text-orange-800">
                     <h6 class="mb-0">
                         <i class="fas fa-upload me-2"></i>Repository dari Upload Manual
                     </h6>
@@ -82,7 +82,7 @@
             @endif
 
             {{-- Form Card --}}
-            <div class="card border-0 shadow-sm">
+            <div class="card border-2 shadow-sm">
                 <div class="card-body p-4">
                     <form method="POST" action="{{ route('repository.update', $repository->id) }}">
                         @csrf
@@ -237,13 +237,13 @@
                                             <i class="fas fa-eye me-1"></i>Publikasikan ke repository
                                         </label>
                                     </div>
-                                    <small class="form-text text-muted">
+                                    <large class="form-text text-muted">
                                         @if($repository->is_published)
                                             Repository ini saat ini <strong>dipublikasikan</strong> sejak {{ $repository->published_at->format('d M Y H:i') }}
                                         @else
                                             Repository ini saat ini masih dalam status <strong>draft</strong>
                                         @endif
-                                    </small>
+                                    </large>
                                 </div>
                             </div>
                         </div>
@@ -252,6 +252,7 @@
                         <div class="alert alert-info mb-4">
                             <h6 class="mb-2">
                                 <i class="fas fa-chart-bar me-2"></i>Statistik Repository
+                                <hr>
                             </h6>
                             <div class="row">
                                 <div class="col-md-6">
@@ -300,7 +301,7 @@
             </div>
             <div class="modal-body">
                 <p>Apakah Anda yakin ingin menghapus repository ini?</p>
-                <p class="text-danger small mb-0">
+                <p class="text-danger mb-0">
                     <i class="fas fa-exclamation-triangle me-1"></i>
                     Tindakan ini tidak dapat dibatalkan. Data repository akan dihapus permanen.
                 </p>
