@@ -166,12 +166,18 @@ class RepositoryController extends Controller
                 'file_laporan_manual' => 'required|file|mimes:pdf|max:10240', // 10MB
                 'nama_peserta_manual' => 'required|string|max:255',
                 'judul' => 'required|string|max:255',
-                'deskripsi' => 'required|string',
-                'deskripsi_lengkap' => 'nullable|string',
+                'deskripsi' => 'required|string|max:1000',
+                'deskripsi_lengkap' => 'nullable|string|max:65000',
                 'tahun_magang' => 'required|digits:4',
                 'bagian' => 'nullable|string|max:255',
                 'kategori' => 'nullable|string|max:255',
                 'is_published' => 'nullable|boolean',
+            ], [
+                'deskripsi.max' => 'Deskripsi singkat tidak boleh lebih dari 1000 karakter.',
+                'deskripsi_lengkap.max' => 'Deskripsi lengkap tidak boleh lebih dari 65000 karakter.',
+                'file_laporan_manual.required' => 'File laporan PDF wajib diupload.',
+                'file_laporan_manual.mimes' => 'File harus berformat PDF.',
+                'file_laporan_manual.max' => 'Ukuran file maksimal 10MB.',
             ]);
 
             try {

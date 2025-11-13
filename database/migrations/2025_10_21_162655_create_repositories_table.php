@@ -13,8 +13,13 @@ return new class extends Migration
     {
         Schema::create('repositories', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('laporan_akhir_id')->constrained('laporan_akhirs')->onDelete('cascade'); // Relasi ke laporan akhir
-            $table->foreignId('peserta_id')->constrained('pesertas')->onDelete('cascade'); // Pembuat (peserta)
+
+            // Nullable untuk mendukung 2 mode:
+            // 1. Mode Sistem: dari laporan akhir yang sudah di-ACC (ada relasi)
+            // 2. Mode Manual: upload file PDF langsung tanpa relasi (untuk arsip lama/eksternal)
+            $table->foreignId('laporan_akhir_id')->nullable()->constrained('laporan_akhirs')->onDelete('cascade');
+            $table->foreignId('peserta_id')->nullable()->constrained('pesertas')->onDelete('cascade');
+
             $table->string('judul'); // Judul repository
             $table->text('deskripsi'); // Deskripsi singkat repository
             $table->text('deskripsi_lengkap')->nullable(); // Deskripsi detail (bisa panjang)

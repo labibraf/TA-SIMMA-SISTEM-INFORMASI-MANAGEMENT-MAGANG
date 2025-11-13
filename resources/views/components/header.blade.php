@@ -56,16 +56,17 @@
                         <span>UI/UX Designer</span> <!-- ganti dengan peran user jika ada -->
                     </div>
                     <!-- Tombol Logout -->
-                    <a href="{{ route('logout') }}" 
-                      class="pc-head-link bg-transparent" 
-                      onclick="event.preventDefault(); if (confirm('Apakah Anda yakin ingin logout?')) { document.getElementById('logout-form').submit(); }">
+                    <a href="#"
+                       class="pc-head-link bg-transparent"
+                       data-bs-toggle="modal"
+                       data-bs-target="#logoutModal">
                         <i class="ti ti-power text-danger"></i>
                     </a>
                 </div>
             </div>
 
             <!-- Form Logout ( disembunyikan ) -->
-            <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+            <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
                 @csrf
             </form>
         </div>
@@ -74,4 +75,33 @@
 </div>
  </div>
 </header>
+
+<!-- Modal Konfirmasi Logout -->
+<div id="logoutModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="logoutModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="logoutModalTitle">
+                    <i class="ti ti-power me-2"></i>Konfirmasi Logout
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center py-3">
+                    <i class="ti ti-logout text-danger" style="font-size: 4rem;"></i>
+                    <p class="mt-3 mb-0">Apakah Anda yakin ingin keluar dari sistem?</p>
+                    <p class="text-muted">Anda harus login kembali untuk mengakses sistem</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="ti ti-x me-1"></i>Batal
+                </button>
+                <button type="button" class="btn btn-danger" onclick="document.getElementById('logout-form').submit();">
+                    <i class="ti ti-logout me-1"></i>Ya, Logout
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 </div>

@@ -234,7 +234,7 @@
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="text-muted small">
                                 <i class="fas fa-user me-1"></i>
-                                {{ $repo->peserta ? ($repo->peserta->nama_lengkap ?? ($repo->peserta->user->name ?? 'N/A')) : ($repo->nama_peserta ?? 'N/A') }}
+                                {{ $repo->nama_peserta_lengkap }}
                             </span>
                             <span class="text-muted small">
                                 <i class="fas fa-calendar me-1"></i>
