@@ -128,6 +128,7 @@ class RepositoryRepository implements RepositoryRepositoryInterface
             'tahun_magang' => $data['tahun_magang'],
             'bagian' => $data['bagian'] ?? null,
             'kategori' => $data['kategori'] ?? null,
+            'file_path' => $laporanAkhir->file_path, // Simpan file path dari laporan akhir
             'is_published' => $data['is_published'] ?? false,
             'published_at' => isset($data['is_published']) && $data['is_published'] ? now() : null,
         ]);
@@ -139,6 +140,16 @@ class RepositoryRepository implements RepositoryRepositoryInterface
      */
     public function createManual(array $data)
     {
+        // Cek apakah repository dengan judul yang sama sudah ada (baik dari laporan akhir maupun manual)
+        $existingRepo = $this->model
+            ->where('judul', $data['judul'])
+            ->where('tahun_magang', $data['tahun_magang'])
+            ->first();
+
+        if ($existingRepo) {
+            throw new \Exception('Repository dengan judul dan tahun magang yang sama sudah ada.');
+        }
+
         // Buat repository baru tanpa relasi ke laporan_akhir
         return $this->model->create([
             'laporan_akhir_id' => null,
@@ -225,16 +236,6 @@ class RepositoryRepository implements RepositoryRepositoryInterface
     }
 
     /**
-     * Increment views counter
-     */
-    public function incrementViews($id)
-    {
-        $repository = $this->model->findOrFail($id);
-        $repository->incrementViews();
-        return $repository->fresh();
-    }
-
-    /**
      * Search repository berdasarkan keyword
      */
     public function search($keyword)
@@ -261,7 +262,6 @@ class RepositoryRepository implements RepositoryRepositoryInterface
             'total_repositories' => $this->model->count(),
             'total_published' => $this->model->where('is_published', true)->count(),
             'total_draft' => $this->model->where('is_published', false)->count(),
-            'total_views' => $this->model->sum('views'),
             'by_year' => $this->model
                 ->select('tahun_magang', DB::raw('count(*) as total'))
                 ->where('is_published', true)
@@ -274,11 +274,6 @@ class RepositoryRepository implements RepositoryRepositoryInterface
                 ->whereNotNull('kategori')
                 ->groupBy('kategori')
                 ->orderBy('total', 'desc')
-                ->get(),
-            'most_viewed' => $this->model
-                ->published()
-                ->orderBy('views', 'desc')
-                ->limit(5)
                 ->get(),
         ];
     }

@@ -10,7 +10,7 @@ class BagianController extends Controller
 {
     public function index()
     {
-        $bagians = Bagian::withCount(['peserta', 'mentor'])->get();
+        $bagians = Bagian::withCount(['pesertas', 'mentors'])->get();
         return view('bagian.index', compact('bagians'));
     }
 
@@ -41,7 +41,7 @@ class BagianController extends Controller
 
     public function edit($id)
     {
-        $bagian = Bagian::withCount(['peserta', 'mentor'])->findOrFail($id);
+        $bagian = Bagian::withCount(['pesertas', 'mentors'])->findOrFail($id);
         return view('bagian.edit', compact('bagian'));
     }
 

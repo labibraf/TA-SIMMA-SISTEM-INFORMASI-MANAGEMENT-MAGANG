@@ -18,6 +18,12 @@
                 <i class="fas fa-arrow-left"></i> Kembali ke Detail Tugas
             </a>
         </div>
+    @elseif($isGugur)
+        <div class="alert alert-danger">
+            <i class="fas fa-info-circle"></i>
+            <strong>Info</strong><br>
+            Tugas ini Terlambat. Pastikan untuk cek kembali sebelum melakukan perubahan.
+        </div>
     @elseif($penugasan->status_tugas === 'Selesai')
         <div class="alert alert-warning">
             <i class="fas fa-exclamation-triangle"></i>
@@ -100,7 +106,7 @@
                             @enderror
 
                             <div class="form-text text-muted mt-1" id="sisaTargetInfo">
-                                Pilih peserta untuk melihat sisa waktu maksimal
+                                Pilih peserta untuk melihat sisa jam kerja
                             </div>
                         </div>
                     </div>
@@ -136,10 +142,18 @@
                     <select name="peserta_id" id="peserta_id" class="form-select">
                         <option value="">-- Pilih Peserta --</option>
                         @foreach($pesertas as $item)
+                            @php
+                                $sisaHari = (int)$item->sisa_hari_kerja;
+                                $sisaJam = (int)$item->sisa_jam_kerja;
+                                $statusInfo = $sisaHari > 0
+                                    ? "Sisa: {$sisaJam} jam / {$sisaHari} hari kerja"
+                                    : "Kurang: {$sisaJam} jam (masa berakhir)";
+                            @endphp
                             <option value="{{ $item->id }}"
-                                    data-target-waktu="{{ $item->getSisaWaktuMaksimalAttribute() }}"
+                                    data-target-waktu="{{ $sisaJam }}"
+                                    data-sisa-hari="{{ $sisaHari }}"
                                     {{ old('peserta_id', $penugasan->peserta_id) == $item->id ? 'selected' : '' }}>
-                                {{ $item->user->name }} (Sisa: {{ $item->getSisaWaktuMaksimalAttribute() }} jam)
+                                {{ $item->user->name }}
                             </option>
                         @endforeach
                     </select>
@@ -150,8 +164,11 @@
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <label class="form-label mb-0">Pilih Peserta</label>
                         <div class="form-check">
+                            @php
+                                $assignedPesertaIds = $penugasan->pesertas->pluck('id')->toArray();
+                            @endphp
                             <input class="form-check-input" type="checkbox" id="selectAll" name="select_all" value="1"
-                                {{ (old('select_all', ($penugasan->pesertas()->count() == $pesertas->count() && $penugasan->kategori == 'Divisi') ? '1' : '0')) == '1' ? 'checked' : '' }}>
+                                {{ (old('select_all', (count($assignedPesertaIds) == $pesertas->count() && $penugasan->kategori == 'Divisi') ? '1' : '0')) == '1' ? 'checked' : '' }}>
                             <label class="form-check-label" for="selectAll">
                                 Pilih Semua
                             </label>
@@ -160,16 +177,27 @@
 
                     <div class="row">
                         @foreach($pesertas as $item)
+                            @php
+                                $sisaHari = (int)$item->sisa_hari_kerja;
+                                $sisaJam = (int)$item->sisa_jam_kerja;
+                                $statusInfo = $sisaHari > 0
+                                    ? "Sisa: {$sisaJam} jam / {$sisaHari} hari kerja"
+                                    : "Kurang: {$sisaJam} jam (masa berakhir)";
+                                $badgeClass = $sisaHari > 0 ? 'bg-success' : 'bg-warning';
+                            @endphp
                             <div class="col-md-6 mb-2">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox"
                                         name="peserta_ids[]"
                                         value="{{ $item->id }}"
                                         id="peserta_{{ $item->id }}"
-                                        data-target-waktu="{{ $item->getSisaWaktuMaksimalAttribute() }}"
-                                        {{ in_array($item->id, old('peserta_ids', $penugasan->pesertas()->pluck('id')->toArray())) ? 'checked' : '' }}>
+                                        data-target-waktu="{{ $sisaJam }}"
+                                        data-sisa-hari="{{ $sisaHari }}"
+                                        data-nama="{{ $item->user->name }}"
+                                        {{ in_array($item->id, old('peserta_ids', $assignedPesertaIds)) ? 'checked' : '' }}>
                                     <label class="form-check-label" for="peserta_{{ $item->id }}">
-                                        {{ $item->user->name }} (Sisa: {{ $item->getSisaWaktuMaksimalAttribute() }} jam)
+                                        {{ $item->user->name }}
+                                        <span class="badge {{ $badgeClass }} badge-sm">{{ $statusInfo }}</span>
                                     </label>
                                 </div>
                             </div>
@@ -179,7 +207,7 @@
                     <!-- Display Target Waktu untuk peserta yang dipilih -->
                     <div class="card mt-3" id="target-waktu-display" style="display: none;">
                         <div class="card-header">
-                            <h6 class="mb-0">Sisa Waktu Maksimal Peserta yang Dipilih</h6>
+                            <h6 class="mb-0">Sisa Waktu Peserta yang Dipilih</h6>
                         </div>
                         <div class="card-body p-2">
                             <div class="table-responsive">
@@ -187,7 +215,8 @@
                                     <thead>
                                         <tr>
                                             <th>Nama Peserta</th>
-                                            <th>Sisa Waktu Maksimal</th>
+                                            <th>Sisa Jam Kerja</th>
+                                            <th>Sisa Hari Kerja</th>
                                         </tr>
                                     </thead>
                                     <tbody id="target-waktu-body">
@@ -244,7 +273,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function clearBatasWaktuValidation() {
         targetWaktuDisplay.style.display = 'none';
         targetWaktuBody.innerHTML = '';
-        sisaTargetInfo.textContent = 'Pilih peserta untuk melihat sisa waktu maksimal';
+        sisaTargetInfo.textContent = 'Pilih peserta untuk melihat sisa jam kerja';
         sisaTargetInfo.className = 'form-text text-muted mt-1';
         if (bebanWaktuInput) {
             bebanWaktuInput.removeAttribute('max');
@@ -258,13 +287,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (checkedCheckboxes.length > 0) {
             checkedCheckboxes.forEach(checkbox => {
-                const label = document.querySelector(`label[for="${checkbox.id}"]`);
-                const targetWaktu = checkbox.dataset.targetWaktu;
+                // Ambil data langsung dari attribute
+                const pesertaName = checkbox.dataset.nama || document.querySelector(`label[for="${checkbox.id}"]`).textContent.split(' (Sisa:')[0];
+                const sisaJam = checkbox.dataset.targetWaktu || '0';
+                const sisaHari = checkbox.dataset.sisaHari || '0';
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${label.textContent.split(' (Sisa:')[0]}</td>
-                    <td>${targetWaktu} jam</td>
+                    <td>${pesertaName}</td>
+                    <td>${sisaJam} jam</td>
+                    <td>${sisaHari} hari</td>
                 `;
                 targetWaktuBody.appendChild(row);
             });
@@ -293,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!bebanWaktuInput) return;
 
         // Reset info dan style
-        sisaTargetInfo.textContent = 'Pilih peserta untuk melihat sisa waktu maksimal';
+        sisaTargetInfo.textContent = 'Pilih peserta untuk melihat sisa jam kerja';
         sisaTargetInfo.className = 'form-text text-muted mt-1';
         bebanWaktuInput.removeAttribute('max');
 
@@ -301,8 +333,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (kategoriSelect.value === 'Individu' && pesertaSelect.value) {
             const selectedOption = pesertaSelect.querySelector(`option[value="${pesertaSelect.value}"]`);
             if (selectedOption) {
-                const sisaWaktuMaksimal = parseInt(selectedOption.dataset.targetWaktu) || 0;
-                applyBatasWaktuLimit(sisaWaktuMaksimal, `Sisa waktu maksimal peserta: ${sisaWaktuMaksimal} jam`);
+                const sisaJamKerja = parseInt(selectedOption.dataset.targetWaktu) || 0;
+                applyBatasWaktuLimit(sisaJamKerja, `Sisa jam kerja peserta: ${sisaJamKerja} jam`);
             }
         }
         // Untuk tugas divisi
@@ -319,9 +351,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
 
                 if (maxSisaWaktu > 0) {
-                    applyBatasWaktuLimit(maxSisaWaktu, `Sisa waktu maksimal terbesar dari peserta yang dipilih: ${maxSisaWaktu} jam`);
+                    applyBatasWaktuLimit(maxSisaWaktu, `Sisa jam kerja terbesar dari peserta yang dipilih: ${maxSisaWaktu} jam`);
                 } else {
-                    sisaTargetInfo.textContent = 'Perhatian: Semua peserta sudah mencapai batas waktu maksimal';
+                    sisaTargetInfo.textContent = 'Perhatian: Semua peserta tidak memiliki sisa jam kerja';
                     sisaTargetInfo.className = 'form-text text-danger mt-1';
                 }
             }

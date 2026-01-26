@@ -3,17 +3,13 @@
 @section('content')
 <div class="">
     <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h2 class="text-center mb-0">Daftar Laporan Harian</h2>
-            @if(Auth::user() && Auth::user()->isPeserta())
-                @if(!Auth::user()->peserta->is_laporan_akhir_selesai)
-                    <a href="{{ route('laporan_harian.create') }}" class="btn btn-primary">
-                        (+) Tambah Laporan Harian
-                    </a>
-                @else
-                    <span class="badge bg-success fs-6">Magang Selesai - Tidak Dapat Menambah Laporan</span>
-                @endif
-            @endif
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1"><i class="ti ti-file-text me-2"></i>Ringkasan Laporan Harian</h2>
+                    <p class="text-muted small mb-0">Overview semua aktivitas harian Anda. Untuk mengelola laporan, kunjungi halaman tugas terkait.</p>
+                </div>
+            </div>
         </div>
 
         <div class="card-body">
@@ -43,7 +39,7 @@
                                 <th>Deskripsi Kegiatan</th>
                                 <th>Progress</th>
                                 <th>File</th>
-                                <th>Opsi</th>
+                                <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -82,19 +78,15 @@
                                         @endif
                                     </td>
                                     <td class="text-center">
-                                        <div class="btn-group" role="group">
-                                            <a href="{{ route('laporan_harian.edit', $item->id) }}"
-                                               class="btn btn-warning btn-sm" title="Edit">
-                                                <i class="fas fa-edit"></i>
+                                        @if($item->penugasan)
+                                            <a href="{{ route('penugasans.show', $item->penugasan->id) }}"
+                                               class="btn btn-primary btn-sm"
+                                               title="Lihat detail tugas terkait">
+                                                <i class="ti ti-arrow-right me-1"></i>Lihat Tugas
                                             </a>
-                                            <button type="button"
-                                                    class="btn btn-danger btn-sm"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#confirmDeleteModal{{ $item->id }}"
-                                                    title="Hapus">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
+                                        @else
+                                            <span class="badge bg-secondary">Tugas tidak ditemukan</span>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach
@@ -105,30 +97,4 @@
         </div>
     </div>
 </div>
-
-<!-- Modal Konfirmasi Hapus -->
-@foreach($laporanHarian as $item)
-<div class="modal fade" id="confirmDeleteModal{{ $item->id }}" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">Konfirmasi Hapus Laporan</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Apakah Anda yakin ingin menghapus laporan harian untuk tugas <strong>{{ $item->penugasan->judul_tugas ?? 'Tidak diketahui' }}</strong>?</p>
-                <p class="text-muted">Data akan terhapus secara permanen.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                <form action="{{ route('laporan_harian.destroy', $item->id) }}" method="POST">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn btn-danger">Hapus</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-@endforeach
 @endsection

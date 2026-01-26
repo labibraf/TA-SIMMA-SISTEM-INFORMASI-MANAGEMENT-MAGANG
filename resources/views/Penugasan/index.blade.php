@@ -62,8 +62,11 @@
                                             <a href="{{ route('penugasans.show', $item->id) }}" class="text-decoration-none judul-tugas">
                                                 {{ $item->judul_tugas }}
                                             </a>
-                                            @if($item->approved_by_mentor == 1)
-                                            <br><span class="badge bg-success"><i class="fas fa-check"></i> Selesai</span>
+
+                                            @if($item->isGugur)
+                                                <br><span class="badge bg-danger mt-1"><i class="ti ti-alarm me-1"></i> Terlambat</span>
+                                            @elseif($item->is_approved == 1)
+                                                <br><span class="badge bg-success mt-1"><i class="fas fa-check me-1"></i> Selesai</span>
                                             @endif
                                         </td>
                                         <td>{{ $item->deadline ? $item->deadline->format('d M Y') : '-' }}</td>
@@ -73,21 +76,21 @@
                                             @php
                                                 // Hitung progress berdasarkan kategori penugasan
                                                 if ($item->kategori === 'Divisi') {
-                                                    // Untuk Divisi: ambil progress tertinggi
                                                     $progress = $item->laporanHarian->max('progres_tugas') ?? 0;
                                                 } else {
-                                                    // Untuk Individu: ambil progress dari laporan terakhir
                                                     $latestLaporan = $item->laporanHarian->last();
                                                     $progress = $latestLaporan ? $latestLaporan->progres_tugas : 0;
                                                 }
                                             @endphp
 
-                                            @if($progress == 100)
+                                            @if($item->isGugur)
+                                                <span class="badge bg-danger">Terlambat</span>
+                                            @elseif($item->is_approved == 1 || $progress >= 100)
                                                 <span class="badge bg-success">Selesai</span>
-                                            @elseif($progress > 0)
-                                                <span class="badge bg-warning text-dark">Dikerjakan</span>
+                                            @elseif($progress > 1 && $progress < 100)
+                                                <span class="badge bg-gray-300 text-dark">Dikerjakan</span>
                                             @else
-                                                <span class="badge bg-primary">Belum</span>
+                                                <span class="badge text-blue-800">Belum Dimulai</span>
                                             @endif
                                         </td>
                                     </tr>
@@ -112,8 +115,15 @@
                                             @else
                                                 -
                                             @endif
-                                            @if($item->is_approved == 1 && ($item->peserta || $item->bagian))
-                                                <br><span class="badge bg-success mt-1"><i class="fas fa-check me-1"></i> Selesai</span>
+
+                                            @if($item->isGugur)
+                                                <br><span class="badge bg-danger mt-1">
+                                                    <i class="ti ti-alarm me-1"></i>Terlambat
+                                                </span>
+                                            @elseif($item->is_approved == 1)
+                                                <br><span class="badge bg-success mt-1">
+                                                    <i class="fas fa-check me-1"></i>Selesai
+                                                </span>
                                             @endif
                                         </td>
                                         <td>
@@ -121,7 +131,9 @@
                                                 {{ $item->judul_tugas }}
                                             </a>
                                         </td>
-                                        <td>{{ $item->deadline ? $item->deadline->format('d M Y') : '-' }}</td>
+                                        <td>
+                                            {{ $item->deadline ? $item->deadline->format('d M Y') : '-' }}
+                                        </td>
                                         <td>{{ $item->beban_waktu ?? '-' }} Jam</td>
                                         <td>{{ $item->kategori }}</td>
                                         <td class="text-center">
@@ -129,14 +141,25 @@
                                                 <a href="{{ route('penugasans.show', $item->id) }}" class="btn btn-info btn-sm" title="Detail">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
-                                                <a href="{{ route('penugasans.edit', $item->id) }}" class="btn btn-warning btn-sm" title="Edit">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                                <button type="button" class="btn btn-danger btn-sm"
-                                                        data-bs-toggle="modal" data-bs-target="#confirmDeleteModal{{ $item->id }}"
-                                                        title="Hapus">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
+                                                @if($item->is_approved == 1)
+                                                    {{-- Approved: Terkunci, tidak bisa edit/hapus --}}
+                                                    <span class="btn btn-secondary btn-sm disabled" title="Tugas sudah di-approve, tidak dapat diedit">
+                                                        <i class="fas fa-edit"></i>
+                                                    </span>
+                                                    <span class="btn btn-secondary btn-sm disabled" title="Tugas sudah di-approve, tidak dapat dihapus">
+                                                        <i class="fas fa-trash"></i>
+                                                    </span>
+                                                @else
+                                                    {{-- Belum Approved: Bisa edit dan hapus --}}
+                                                    <a href="{{ route('penugasans.edit', $item->id) }}" class="btn btn-warning btn-sm" title="Edit">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <button type="button" class="btn btn-danger btn-sm"
+                                                            data-bs-toggle="modal" data-bs-target="#confirmDeleteModal{{ $item->id }}"
+                                                            title="Hapus">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>
@@ -147,8 +170,8 @@
                                     <div class="modal fade" id="confirmDeleteModal{{ $item->id }}" tabindex="-1" aria-hidden="true">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
-                                                <div class="modal-header bg-danger text-white">
-                                                    <h5 class="modal-title">Konfirmasi Penghapusan</h5>
+                                                <div class="modal-header bg-red-600">
+                                                    <h5 class="modal-title text-white">Konfirmasi Penghapusan</h5>
                                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                 </div>
                                                 <div class="modal-body">

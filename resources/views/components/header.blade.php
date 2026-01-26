@@ -53,7 +53,18 @@
                     </div>
                     <div class="flex-grow-1 ms-2">
                         <h6 class="mb-1">{{ auth()->user()->name }}</h6>
-                        <span>UI/UX Designer</span> <!-- ganti dengan peran user jika ada -->
+                        @php $user = auth()->user(); @endphp
+                        <span>
+                            @if($user->isAdmin())
+                                Administrator
+                            @elseif($user->isMentor() && $user->mentor)
+                                {{ $user->mentor->keahlian ?? 'Umum' }}
+                            @elseif($user->isPeserta() && $user->peserta)
+                                {{ $user->peserta->bagian->nama_bagian ?? 'Belum ada bagian' }}
+                            @else
+                                User
+                            @endif
+                        </span>
                     </div>
                     <!-- Tombol Logout -->
                     <a href="#"

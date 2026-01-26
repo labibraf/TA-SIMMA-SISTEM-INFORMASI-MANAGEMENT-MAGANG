@@ -130,27 +130,18 @@
                                 </p>
                             </div>
                         </div>
+                        {{-- Progress Masa Magang (Berdasarkan Hari) --}}
                         <div class="col-md-6">
                             <div class="info-item">
-                                <label class="text-muted d-block">Waktu Tugas Tercapai</label>
+                                <label class="text-muted d-block">Progress Masa Magang</label>
                                 <div class="d-flex align-items-center mb-2 flex-wrap gap-2">
-                                    <h4 class="mb-0 me-2">{{ $peserta->waktu_tugas_tercapai }} Jam</h4>
-                                    @if($peserta->bisa_laporan_akhir)
-                                        <span class="badge bg-success rounded-pill px-3 py-2">Siap Laporan Akhir</span>
-                                    @else
-                                        <span class="badge bg-warning rounded-pill px-3 py-2">Proses</span>
-                                    @endif
-
-                                    {{-- Badge tugas belum selesai --}}
-                                    @if($peserta->jumlah_tugas_belum_selesai > 0)
-                                        <span class="badge bg-danger rounded-pill px-3 py-2" data-bs-toggle="tooltip" title="Selesaikan tugas untuk memenuhi syarat laporan akhir">
-                                            <i class="ti ti-alert-triangle me-1"></i>
-                                            {{ $peserta->jumlah_tugas_belum_selesai }} Tugas belum selesai
-                                        </span>
-                                    @endif
+                                    <h4 class="mb-0 me-2">
+                                        Hari Kerja ke-{{ floor($peserta->hari_kerja_berjalan) }} dari {{ $peserta->durasi_hari_kerja }}
+                                    </h4>
+                                    <span class="badge bg-info rounded-pill px-3 py-2">{{ $peserta->status_magang }}</span>
                                 </div>
                                 <div class="progress" style="height: 10px; border-radius: 5px; background-color: #e9ecef;">
-                                    <div class="progress-bar bg-primary"
+                                    <div class="progress-bar bg-info"
                                         role="progressbar"
                                         style="width: {{ $peserta->progress_percentage }}%; border-radius: 5px;"
                                         aria-valuenow="{{ $peserta->progress_percentage }}"
@@ -165,29 +156,98 @@
                                 </div>
                                 <div class="mt-2">
                                     <small class="text-muted fst-italic">
-                                        <i class="ti ti-info-circle me-1"></i>
-                                        Progress: 100% = {{ $peserta->waktu_maksimum }} jam (maksimal waktu tugas) || Syarat Laporan Akhir: minimal {{ $peserta->target_bobot_tugas }} jam
+                                        <i class="ti ti-calendar me-1"></i>
+                                        Progress berdasarkan hari kerja (Senin-Jumat, tanpa weekend)
                                     </small>
                                 </div>
                             </div>
                         </div>
 
+                        {{-- Progress Pencapaian Tugas (Berdasarkan Jam) --}}
                         <div class="col-md-6">
                             <div class="info-item">
-                                <label class="text-muted d-block">Status</label>
+                                <label class="text-muted d-block">Pencapaian Target Tugas</label>
+                                <div class="d-flex align-items-center mb-2 flex-wrap gap-2">
+                                    <h4 class="mb-0 me-2">{{ $peserta->waktu_tugas_tercapai }} / {{ $peserta->target_bobot_tugas }} Jam</h4>
+                                    @if($peserta->bisa_laporan_akhir)
+                                        <span class="badge bg-success rounded-pill px-3 py-2">
+                                            <i class="ti ti-circle-check me-1"></i>Siap Laporan Akhir
+                                        </span>
+                                    @else
+                                        <span class="badge bg-warning rounded-pill px-3 py-2">
+                                            <i class="ti ti-clock me-1"></i>Proses
+                                        </span>
+                                    @endif
+
+                                    {{-- Badge tugas belum selesai --}}
+                                    @if($peserta->jumlah_tugas_belum_selesai > 0)
+                                        <span class="badge bg-danger rounded-pill px-3 py-2" data-bs-toggle="tooltip" title="Selesaikan tugas untuk memenuhi syarat laporan akhir">
+                                            <i class="ti ti-alert-triangle me-1"></i>
+                                            {{ $peserta->jumlah_tugas_belum_selesai }} Tugas belum selesai
+                                        </span>
+                                    @endif
+                                </div>
+                                <div class="progress" style="height: 10px; border-radius: 5px; background-color: #e9ecef;">
+                                    <div class="progress-bar bg-success"
+                                        role="progressbar"
+                                        style="width: {{ $peserta->persentase_target_tugas }}%; border-radius: 5px;"
+                                        aria-valuenow="{{ $peserta->persentase_target_tugas }}"
+                                        aria-valuemin="0"
+                                        aria-valuemax="100">
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-1">
+                                    <small class="text-muted">0%</small>
+                                    <small class="text-muted badge bg-gray-400 rounded-pill px-3 py-2 fw-bold"><b>{{ $peserta->persentase_target_tugas }}%</b></small>
+                                    <small class="text-muted">100%</small>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted fst-italic">
+                                        <i class="ti ti-info-circle me-1"></i>
+                                        Target waktu tugas peserta: {{ $peserta->target_bobot_tugas }} jam
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Warning Batas Maksimal --}}
+                        @if($peserta->warning_batas_maksimal)
+                        <div class="col-12">
+                            <div class="alert alert-warning d-flex align-items-center" role="alert">
+                                <i class="ti ti-alert-triangle me-2 fs-5"></i>
+                                <div class="flex-grow-1">
+                                    <strong>{{ $peserta->warning_batas_maksimal }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
+                        {{-- Status Kelayakan Laporan Akhir --}}
+                        <div class="col-12">
+                            <div class="info-item">
+                                <label class="text-muted d-block">Status Kelayakan Laporan Akhir</label>
                                 <div class="mt-2">
                                     @if($peserta->bisa_laporan_akhir)
-                                        <div class="alert alert-success d-flex align-items-center p-2" role="alert">
-                                            <i class="ti ti-circle-check me-2 fs-5"></i>
+                                        <div class="alert alert-success d-flex align-items-center p-3" role="alert">
+                                            <i class="ti ti-circle-check me-2 fs-4"></i>
                                             <div class="flex-grow-1">
                                                 <strong>Memenuhi Syarat Laporan Akhir</strong>
+                                                <p class="mb-0 mt-1 small">Target tugas minimal sudah tercapai dan semua tugas telah selesai.</p>
                                             </div>
                                         </div>
                                     @else
-                                        <div class="alert alert-warning d-flex align-items-center p-2" role="alert">
-                                            <i class="ti ti-alert-circle me-2 fs-5"></i>
+                                        <div class="alert alert-warning d-flex align-items-center p-3" role="alert">
+                                            <i class="ti ti-alert-circle me-2 fs-4"></i>
                                             <div class="flex-grow-1">
                                                 <strong>Belum Memenuhi Syarat</strong>
+                                                <p class="mb-0 mt-1 small">
+                                                    @if($peserta->waktu_tugas_tercapai < $peserta->target_bobot_tugas)
+                                                        Sisa target: {{ round($peserta->target_bobot_tugas - $peserta->waktu_tugas_tercapai, 2) }} jam lagi.
+                                                    @endif
+                                                    @if($peserta->jumlah_tugas_belum_selesai > 0)
+                                                        Masih ada {{ $peserta->jumlah_tugas_belum_selesai }} tugas yang belum selesai.
+                                                    @endif
+                                                </p>
                                             </div>
                                         </div>
                                     @endif
@@ -302,12 +362,32 @@
                                             <td>{{ $tugas->beban_waktu }} Jam</td>
                                             <td>{{ \Carbon\Carbon::parse($tugas->created_at)->format('d/m/Y') }}</td>
                                             <td>
-                                                @if($tugas->status_tugas == 'Selesai' && $tugas->is_approved == 1)
+                                                @php
+                                                    // Cek apakah tugas gugur/terlambat
+                                                    $isOverdue = $tugas->deadline && now()->greaterThan(\Carbon\Carbon::parse($tugas->deadline)->endOfDay());
+
+                                                    // Cek apakah benar-benar selesai
+                                                    if ($tugas->kategori === 'Divisi') {
+                                                        $isSelesaiBetulan = ($tugas->is_approved == 1);
+                                                    } else {
+                                                        $latestLaporan = $tugas->laporanHarian->last();
+                                                        $progress = $latestLaporan ? $latestLaporan->progres_tugas : 0;
+                                                        $isSelesaiBetulan = ($tugas->is_approved == 1 || $progress == 100);
+                                                    }
+
+                                                    $isGugur = $isOverdue && !$isSelesaiBetulan;
+                                                @endphp
+
+                                                @if($isGugur)
+                                                    <span class="badge bg-danger">
+                                                        <i class="ti ti-alarm me-1"></i>Terlambat
+                                                    </span>
+                                                @elseif($tugas->is_approved == 1)
                                                     <span class="badge bg-success">Selesai</span>
                                                 @elseif($tugas->status_tugas == 'Selesai' && $tugas->is_approved != 1)
                                                     <span class="badge bg-info">Review</span>
                                                 @elseif($tugas->status_tugas == 'Berlangsung')
-                                                    <span class="badge bg-warning">Berlangsung</span>
+                                                    <span class="badge bg-warning">Dikerjakan</span>
                                                 @else
                                                     <span class="badge bg-secondary">Belum Dimulai</span>
                                                 @endif
@@ -327,8 +407,8 @@
     <div class="row mt-4">
         <div class="col-12">
             <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Laporan Harian</h5>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Catatan Aktivitas Harian Peserta</h5>
                 </div>
                 <div class="card-body">
                     @if(!$peserta->laporanHarian || $peserta->laporanHarian->isEmpty())
@@ -337,9 +417,9 @@
                             <p class="text-muted mt-2">Belum ada laporan harian yang dibuat</p>
                         </div>
                     @else
-                        <div class="table-responsive">
+                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
                             <table class="table table-hover mb-0">
-                                <thead>
+                                <thead class="sticky-top bg-white">
                                     <tr>
                                         <th>No</th>
                                         <th>Nama Tugas</th>

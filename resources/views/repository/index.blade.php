@@ -6,7 +6,7 @@
     {{-- Header Section --}}
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card border-0 shadow-sm bg-gradient-primary text-white">
+            <div class="card border-0 shadow-sm bg-blue-600 text-white">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -28,8 +28,8 @@
 
     {{-- Statistics Section (Admin Only) --}}
     @if(Auth::user()->isAdmin())
-    <div class="row mb-4">
-        <div class="col-md-3">
+    <div class="row mb-3">
+        <div class="col-md-4">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
@@ -38,7 +38,7 @@
                                 <i class="fas fa-database fa-2x"></i>
                             </div>
                         </div>
-                        <div class="flex-grow-1 ms-3">
+                        <div class="flex-grow-1 ms-4">
                             <h6 class="text-muted mb-1">Total Repository</h6>
                             <h3 class="mb-0">{{ $statistics['total_repositories'] }}</h3>
                         </div>
@@ -46,7 +46,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
@@ -55,7 +55,7 @@
                                 <i class="fas fa-check-circle fa-2x"></i>
                             </div>
                         </div>
-                        <div class="flex-grow-1 ms-3">
+                        <div class="flex-grow-1 ms-4">
                             <h6 class="text-muted mb-1">Published</h6>
                             <h3 class="mb-0">{{ $statistics['total_published'] }}</h3>
                         </div>
@@ -63,7 +63,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
@@ -72,26 +72,9 @@
                                 <i class="fas fa-file-alt fa-2x"></i>
                             </div>
                         </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Draft</h6>
+                        <div class="flex-grow-1 ms-4">
+                            <h6 class="text-muted mb-1">Pending</h6>
                             <h3 class="mb-0">{{ $statistics['total_draft'] }}</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="bg-info text-white rounded p-3">
-                                <i class="fas fa-eye fa-2x"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Total Views</h6>
-                            <h3 class="mb-0">{{ number_format($statistics['total_views']) }}</h3>
                         </div>
                     </div>
                 </div>
@@ -160,7 +143,7 @@
                                 {{-- Filter Bagian (Admin Only) --}}
                                 <div class="col-md-2">
                                     <select name="bagian" class="form-select"">
-                                        <option value="">Semua Bagian</option>
+                                        <option value="">Semua Departemen</option>
                                         @foreach($bagians as $bagian)
                                             <option value="{{ $bagian->nama_bagian }}" {{ request('bagian') == $bagian->nama_bagian ? 'selected' : '' }}>
                                                 {{ $bagian->nama_bagian }}
@@ -212,15 +195,12 @@
                                 <span class="badge bg-primary">{{ $repo->kategori }}</span>
                             @endif
                         </div>
-                        <span class="text-muted small">
-                            <i class="fas fa-eye me-1"></i>{{ $repo->views }}
-                        </span>
                     </div>
 
                     {{-- Judul --}}
                     <h5 class="card-title mb-3">
                         <a href="{{ route('repository.show', $repo->id) }}" class="text-decoration-none text-dark repo-title">
-                            {{ Str::limit($repo->judul, 60) }}
+                            {{ Str::limit($repo->judul, 80) }}
                         </a>
                     </h5>
 

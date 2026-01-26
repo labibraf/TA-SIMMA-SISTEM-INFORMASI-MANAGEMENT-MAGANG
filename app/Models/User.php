@@ -175,6 +175,11 @@ class User extends Authenticatable
 
     /**
      * Get departemen info with role type
+     * Warna disesuaikan dengan role badge:
+     * - Mentor: indigo-400
+     * - Peserta/Intern: blue-400
+     * - Admin: orange-400
+     * - Default: secondary
      */
     public function getDepartemenInfoAttribute()
     {
@@ -185,14 +190,24 @@ class User extends Authenticatable
                 'bagian' => $bagianName,
                 'type' => 'peserta',
                 'icon' => 'ti ti-school',
-                'color' => 'primary'
+                'color' => 'blue-400'  // Sama dengan role Intern/Peserta
             ];
         } elseif ($this->mentor && $bagianName) {
             return [
                 'bagian' => $bagianName,
                 'type' => 'mentor',
                 'icon' => 'ti ti-user-star',
-                'color' => 'danger'
+                'color' => 'indigo-400'  // Sama dengan role Mentor
+            ];
+        }
+
+        // Cek jika admin (tidak punya peserta/mentor tapi punya role admin)
+        if ($this->isAdmin()) {
+            return [
+                'bagian' => 'Administrator',
+                'type' => 'admin',
+                'icon' => 'ti ti-shield',
+                'color' => 'orange-400'  // Sama dengan role Admin
             ];
         }
 

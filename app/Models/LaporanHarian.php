@@ -12,6 +12,7 @@ class LaporanHarian extends Model
     protected $fillable = [
         'peserta_id',
         'penugasan_id',
+        'tanggal_laporan',
         'deskripsi_kegiatan',
         'status_tugas',
         'progres_tugas',
@@ -59,12 +60,19 @@ class LaporanHarian extends Model
         });
     }
 
+    /**
+     * Relasi ke Peserta (Many-to-One)
+     */
     public function peserta()
     {
-        return $this->belongsTo(Peserta::class, 'peserta_id', 'id');
+        return $this->belongsTo(Peserta::class);
     }
+
+    /**
+     * Relasi ke Penugasan (Many-to-One)
+     */
     public function penugasan()
     {
-        return $this->belongsTo(Penugasan::class, 'penugasan_id', 'id');
+        return $this->belongsTo(Penugasan::class);
     }
 }

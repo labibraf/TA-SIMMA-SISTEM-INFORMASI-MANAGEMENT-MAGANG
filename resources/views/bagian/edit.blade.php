@@ -3,7 +3,7 @@
 <div class="">
     <div class="card">
         <div class="card-header">
-            <h2 class="text-center">Edit Bagian</h2>
+            <h2 class="text-center">Edit Departemen</h2>
         </div>
         <div class="card-body">
             <form action="{{ route('bagian.update', $bagian->id) }}" method="POST">
@@ -12,7 +12,7 @@
                 <div class="row justify-content-center">
                     <div class="col-md-8">
                         <div class="mb-3">
-                            <label for="nama_bagian" class="form-label">Nama Bagian <span class="text-danger">*</span></label>
+                            <label for="nama_bagian" class="form-label">Nama Departemen <span class="text-danger">*</span></label>
                             <input type="text"
                                    class="form-control @error('nama_bagian') is-invalid @enderror"
                                    id="nama_bagian"
@@ -29,7 +29,7 @@
 
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle"></i>
-                            <strong>Info:</strong> Bagian ini memiliki {{ $bagian->peserta_count }} peserta dan {{ $bagian->mentor_count }} mentor yang terkait.
+                            <strong>Info:</strong> Departemen ini memiliki {{ $bagian->pesertas_count }} peserta dan {{ $bagian->mentors_count }} mentor yang terkait.
                         </div>
 
                         <div class="d-flex justify-content-between">

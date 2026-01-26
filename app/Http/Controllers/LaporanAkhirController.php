@@ -48,16 +48,22 @@ class LaporanAkhirController extends Controller
                     ? $pesertaData->target_bobot_tugas
                     : $pesertaData->target_waktu_tugas;
                 $waktuTercapai = $pesertaData->waktu_tugas_tercapai;
-                $sisaWaktu = $targetWaktu - $waktuTercapai;
+                $sisaWaktu = max(0, $targetWaktu - $waktuTercapai);
 
                 // Ambil daftar tugas yang belum selesai
                 $tugasBelumSelesai = $pesertaData->getTugasBelumSelesai();
+
+                // Hitung progress berdasarkan TARGET WAKTU TUGAS, bukan hari kerja
+                // Progress = (waktu tercapai / target waktu) * 100, max 100%
+                $progressWaktu = $targetWaktu > 0
+                    ? min(100, ($waktuTercapai / $targetWaktu) * 100)
+                    : 0;
 
                 $alasanTidakBisa = [
                     'target' => $targetWaktu,
                     'tercapai' => $waktuTercapai,
                     'sisa' => $sisaWaktu,
-                    'progress' => $pesertaData->progress_percentage,
+                    'progress' => round($progressWaktu, 1), // Sekarang berdasarkan target waktu tugas
                     'tugas_belum_selesai' => $tugasBelumSelesai,
                     'jumlah_tugas_belum_selesai' => $tugasBelumSelesai->count(),
                 ];
@@ -106,6 +112,16 @@ class LaporanAkhirController extends Controller
             return redirect()->route('laporan-akhir.index');
         }
 
+        // OPSI 2: Cek apakah masih ada laporan aktif (draft atau review)
+        $laporanAktif = LaporanAkhir::where('peserta_id', $peserta->id)
+            ->whereIn('status', ['draft', 'review'])
+            ->first();
+
+        if ($laporanAktif) {
+            Alert::warning('Laporan Sudah Ada', 'Anda masih memiliki laporan akhir dengan status "' . ucfirst($laporanAktif->status) . '". Silakan selesaikan laporan tersebut terlebih dahulu atau tunggu hingga ditolak untuk membuat laporan baru.');
+            return redirect()->route('laporan-akhir.index');
+        }
+
         // Cek apakah memenuhi syarat membuat laporan akhir
         if (!$peserta->bisa_laporan_akhir) {
             // Cek alasan spesifik kenapa tidak bisa
@@ -144,10 +160,22 @@ class LaporanAkhirController extends Controller
         $user = Auth::user();
         $peserta = $user->peserta;
 
+        // OPSI 2: Double-check - Cegah pembuatan laporan kedua jika masih ada laporan aktif
+        $laporanAktif = LaporanAkhir::where('peserta_id', $peserta->id)
+            ->whereIn('status', ['draft', 'review'])
+            ->exists();
+
+        if ($laporanAktif) {
+            Alert::warning('Laporan Sudah Ada', 'Anda masih memiliki laporan akhir yang aktif. Silakan selesaikan laporan tersebut terlebih dahulu.');
+            return redirect()->route('laporan-akhir.index');
+        }
+
         $validated = $request->validate([
             'judul_laporan' => 'required|string|max:255',
             'deskripsi_laporan' => 'required|string',
-            'file_path' => 'nullable|file|mimes:pdf,doc,docx|max:2048',
+            'file_path' => 'required|file|mimes:pdf,doc,docx|max:2048', // Wajib upload file
+            'kategori_repository' => 'nullable|string|max:255',
+            'deskripsi_repository' => 'nullable|string|max:1000',
         ]);
 
         $validated['peserta_id'] = $peserta->id;
@@ -173,11 +201,21 @@ class LaporanAkhirController extends Controller
             abort(403, 'AKSES DITOLAK.');
         }
 
-        if ($user->isPeserta()) {
-            $this->checkPesertaBisaLaporanAkhir();
+        // PROTEKSI: Cek apakah repository sudah published
+        $repository = $laporanAkhir->repository;
+        if ($repository && $repository->is_published) {
+            Alert::error('Tidak Dapat Diedit', 'Laporan akhir ini tidak dapat diedit karena repository terkait sudah dipublikasikan.');
+            return redirect()->route('laporan-akhir.show', $laporanAkhir->id);
+        }
 
-            if ($laporanAkhir->status !== 'draft') {
-                abort(403, 'ANDA TIDAK DAPAT MENGEDIT LAPORAN YANG SUDAH DIVERIFIKASI.');
+        if ($user->isPeserta()) {
+            // PERBAIKAN: Tidak perlu cek syarat lagi karena laporan sudah dibuat sebelumnya
+            // Peserta tetap bisa edit laporan yang sudah dibuat untuk revisi dari mentor
+
+            // Peserta hanya bisa edit jika status draft atau review
+            if (!in_array($laporanAkhir->status, ['draft', 'review'])) {
+                Alert::error('Tidak Dapat Diedit', 'Anda tidak dapat mengedit laporan dengan status "' . ucfirst($laporanAkhir->status) . '".');
+                return redirect()->route('laporan-akhir.show', $laporanAkhir->id);
             }
         }
 
@@ -192,11 +230,21 @@ class LaporanAkhirController extends Controller
             abort(403, 'AKSES DITOLAK.');
         }
 
-        if ($user->isPeserta()) {
-            $this->checkPesertaBisaLaporanAkhir();
+        // PROTEKSI: Cek apakah repository sudah published
+        $repository = $laporanAkhir->repository;
+        if ($repository && $repository->is_published) {
+            Alert::error('Tidak Dapat Diupdate', 'Laporan akhir ini tidak dapat diupdate karena repository terkait sudah dipublikasikan.');
+            return redirect()->route('laporan-akhir.show', $laporanAkhir->id);
+        }
 
-            if ($laporanAkhir->status !== 'draft') {
-                abort(403, 'ANDA TIDAK DAPAT MENGEDIT LAPORAN YANG SUDAH DIVERIFIKASI.');
+        if ($user->isPeserta()) {
+            // PERBAIKAN: Tidak perlu cek syarat lagi karena laporan sudah dibuat sebelumnya
+            // Peserta tetap bisa update laporan untuk revisi dari mentor
+
+            // Peserta hanya bisa update jika status draft atau review
+            if (!in_array($laporanAkhir->status, ['draft', 'review'])) {
+                Alert::error('Tidak Dapat Diupdate', 'Anda tidak dapat mengupdate laporan dengan status "' . ucfirst($laporanAkhir->status) . '".');
+                return redirect()->route('laporan-akhir.show', $laporanAkhir->id);
             }
         }
 
@@ -243,7 +291,14 @@ class LaporanAkhirController extends Controller
             abort(403, 'AKSES DITOLAK: HANYA ADMIN YANG BISA MENGHAPUS LAPORAN.');
         }
 
-        // Hapus repository terkait jika ada
+        // PROTEKSI: Cek apakah laporan akhir ini punya repository yang sudah published
+        $repository = $laporanAkhir->repository;
+        if ($repository && $repository->is_published) {
+            Alert::error('Tidak Dapat Dihapus', 'Laporan akhir ini tidak dapat dihapus karena repository terkait sudah dipublikasikan. Silakan unpublish repository terlebih dahulu.');
+            return redirect()->back();
+        }
+
+        // Hapus repository terkait jika ada (hanya yang masih draft)
         $this->repositoryRepo->deleteByLaporanAkhir($laporanAkhir->id);
 
         // Hapus file jika ada
@@ -276,6 +331,15 @@ class LaporanAkhirController extends Controller
             $statusLama = $laporanAkhir->status;
             $statusBaru = $request->status;
 
+            // PROTEKSI: Cek apakah laporan akhir ini punya repository yang sudah published
+            if ($statusLama === 'terima' && $statusBaru !== 'terima') {
+                $repository = $laporanAkhir->repository;
+                if ($repository && $repository->is_published) {
+                    Alert::error('Tidak Dapat Diubah', 'Laporan akhir ini tidak dapat diubah statusnya karena repository terkait sudah dipublikasikan. Silakan unpublish repository terlebih dahulu.');
+                    return redirect()->back();
+                }
+            }
+
             // Update status laporan
             $laporanAkhir->update(['status' => $statusBaru]);
 
@@ -291,9 +355,11 @@ class LaporanAkhirController extends Controller
 
                     $this->repositoryRepo->createFromLaporanAkhir($laporanAkhir->id, [
                         'judul' => $laporanAkhir->judul_laporan,
-                        'deskripsi' => $laporanAkhir->deskripsi_laporan,
+                        'deskripsi' => $laporanAkhir->deskripsi_repository ?? substr($laporanAkhir->deskripsi_laporan, 0, 200),
+                        'deskripsi_lengkap' => $laporanAkhir->deskripsi_laporan,
                         'tahun_magang' => $tahunMagang,
                         'bagian' => $laporanAkhir->peserta->bagian->nama_bagian ?? null,
+                        'kategori' => $laporanAkhir->kategori_repository,
                         'is_published' => false, // Draft, perlu review admin
                     ]);
 
@@ -351,8 +417,8 @@ class LaporanAkhirController extends Controller
 
         // Peserta hanya bisa akses laporannya sendiri
         if ($user->isPeserta() && $laporan->peserta_id === $user->peserta?->id) {
-            // Untuk edit/update, cek apakah status masih draft
-            if (in_array($action, ['edit', 'update']) && $laporan->status !== 'draft') {
+            // Untuk edit/update, cek apakah status masih draft atau review
+            if (in_array($action, ['edit', 'update']) && !in_array($laporan->status, ['draft', 'review'])) {
                 return false;
             }
             return true;

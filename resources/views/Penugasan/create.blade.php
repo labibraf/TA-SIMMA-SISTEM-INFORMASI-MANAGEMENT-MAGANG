@@ -82,7 +82,7 @@
                         @enderror
 
                         <div class="form-text text-muted mt-1" id="sisaTargetInfo">
-                            Pilih peserta untuk melihat sisa target jam
+                            Pilih peserta untuk melihat sisa jam kerja
                         </div>
                     </div>
 
@@ -109,10 +109,18 @@
                         <select name="peserta_id" id="peserta_id" class="form-select">
                             <option value="">-- Pilih Peserta --</option>
                             @foreach($peserta as $item)
+                                @php
+                                    $sisaHari = (int)$item->sisa_hari_kerja;
+                                    $sisaJam = (int)$item->sisa_jam_kerja;
+                                    $statusInfo = $sisaHari > 0
+                                        ? "Sisa: {$sisaJam} jam / {$sisaHari} hari kerja"
+                                        : "Kurang: {$sisaJam} jam (masa berakhir)";
+                                @endphp
                                 <option value="{{ $item->id }}"
-                                        data-target-waktu="{{ $item->getSisaWaktuMaksimalAttribute() }}"
+                                        data-target-waktu="{{ $sisaJam }}"
+                                        data-sisa-hari="{{ $sisaHari }}"
                                         {{ old('peserta_id') == $item->id ? 'selected' : '' }}>
-                                    {{ $item->user->name }} (Sisa: {{ $item->getSisaWaktuMaksimalAttribute() }} jam)
+                                    {{ $item->user->name }}
                                 </option>
                             @endforeach
                         </select>
@@ -132,16 +140,27 @@
 
                         <div class="row">
                             @foreach($peserta as $item)
+                                @php
+                                    $sisaHari = (int)$item->sisa_hari_kerja;
+                                    $sisaJam = (int)$item->sisa_jam_kerja;
+                                    $statusInfo = $sisaHari > 0
+                                        ? "Sisa: {$sisaJam} jam / {$sisaHari} hari kerja"
+                                        : "Kurang: {$sisaJam} jam (masa berakhir)";
+                                    $badgeClass = $sisaHari > 0 ? 'bg-success' : 'bg-warning';
+                                @endphp
                                 <div class="col-md-6 mb-2">
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox"
                                             name="peserta_ids[]"
                                             value="{{ $item->id }}"
                                             id="peserta_{{ $item->id }}"
-                                            data-target-waktu="{{ $item->getSisaWaktuMaksimalAttribute() }}"
+                                            data-target-waktu="{{ $sisaJam }}"
+                                            data-sisa-hari="{{ $sisaHari }}"
+                                            data-nama="{{ $item->user->name }}"
                                             {{ in_array($item->id, old('peserta_ids', [])) ? 'checked' : '' }}>
                                         <label class="form-check-label" for="peserta_{{ $item->id }}">
-                                            {{ $item->user->name }} (Sisa: {{ $item->getSisaWaktuMaksimalAttribute() }} jam)
+                                            {{ $item->user->name }}
+                                            <span class="badge {{ $badgeClass }} badge-sm">{{ $statusInfo }}</span>
                                         </label>
                                     </div>
                                 </div>
@@ -156,7 +175,8 @@
                                     <thead class="table-light">
                                         <tr>
                                             <th>Nama Peserta</th>
-                                            <th>Sisa Target Waktu</th>
+                                            <th>Sisa Jam Kerja</th>
+                                            <th>Sisa Hari Kerja</th>
                                         </tr>
                                     </thead>
                                     <tbody id="target-waktu-body">
@@ -191,6 +211,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const bebanWaktuInput = document.getElementById('beban_waktu');
     const pesertaSelect = document.getElementById('peserta_id');
     const sisaTargetInfo = document.getElementById('sisaTargetInfo');
+    const sisaWaktu = document.getElementsByClassName('form-check');
 
     // Fungsi untuk toggle field peserta berdasarkan kategori
     function togglePesertaFields() {
@@ -233,13 +254,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (checkedCheckboxes.length > 0) {
             checkedCheckboxes.forEach(checkbox => {
-                const pesertaName = checkbox.nextElementSibling.textContent;
-                const targetWaktu = checkbox.dataset.targetWaktu;
+                // Ambil data langsung dari attribute
+                const pesertaName = checkbox.dataset.nama || checkbox.nextElementSibling.textContent.split(' (Sisa:')[0];
+                const sisaJam = checkbox.dataset.targetWaktu || '0';
+                const sisaHari = checkbox.dataset.sisaHari || '0';
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${pesertaName.split(' (Sisa:')[0]}</td>
-                    <td>${targetWaktu} jam</td>
+                    <td>${pesertaName}</td>
+                    <td>${sisaJam} jam</td>
+                    <td>${sisaHari} hari</td>
                 `;
                 targetWaktuBody.appendChild(row);
             });
@@ -254,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!bebanWaktuInput) return;
 
         // Reset info dan style
-        sisaTargetInfo.textContent = 'Pilih peserta untuk melihat sisa waktu maksimal';
+        sisaTargetInfo.textContent = 'Pilih peserta untuk melihat sisa jam kerja';
         sisaTargetInfo.className = 'form-text text-muted mt-1';
         bebanWaktuInput.removeAttribute('max');
 
@@ -262,8 +286,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (kategoriSelect.value === 'Individu' && pesertaSelect.value) {
             const selectedOption = pesertaSelect.querySelector(`option[value="${pesertaSelect.value}"]`);
             if (selectedOption) {
-                const sisaWaktuMaksimal = parseInt(selectedOption.dataset.targetWaktu) || 0;
-                applyBatasWaktuLimit(sisaWaktuMaksimal, `Sisa waktu maksimal peserta: ${sisaWaktuMaksimal} jam`);
+                const sisaJamKerja = parseInt(selectedOption.dataset.targetWaktu) || 0;
+                applyBatasWaktuLimit(sisaJamKerja, `Sisa jam kerja peserta: ${sisaJamKerja} jam`);
             }
         }
         // Untuk tugas divisi
@@ -280,9 +304,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
 
                 if (maxSisaWaktu > 0) {
-                    applyBatasWaktuLimit(maxSisaWaktu, `Sisa waktu maksimal terbesar dari peserta yang dipilih: ${maxSisaWaktu} jam`);
+                    applyBatasWaktuLimit(maxSisaWaktu, `Sisa jam kerja terbesar dari peserta yang dipilih: ${maxSisaWaktu} jam`);
                 } else {
-                    sisaTargetInfo.textContent = 'Perhatian: Semua peserta sudah mencapai batas waktu maksimal';
+                    sisaTargetInfo.textContent = 'Perhatian: Semua peserta tidak memiliki sisa jam kerja';
                     sisaTargetInfo.className = 'form-text text-danger mt-1';
                 }
             }
@@ -301,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 bebanWaktuInput.value = maxValue;
             }
         } else {
-            sisaTargetInfo.textContent = 'Peserta sudah mencapai target maksimal, tidak dapat menambah tugas';
+            sisaTargetInfo.textContent = 'Peserta tidak memiliki sisa jam kerja, tidak dapat menambah tugas';
             sisaTargetInfo.className = 'form-text text-danger mt-1';
             bebanWaktuInput.setAttribute('max', 0);
         }

@@ -20,7 +20,7 @@
                             </li>
                             <x-sidebar.links title="Data Peserta" route="peserta.index" icon="ti ti-plant"></x-sidebar.links>
                             <x-sidebar.links title="Data Mentor" route="mentor.index" icon="ti ti-user"></x-sidebar.links>
-                            <x-sidebar.links title="Data Bagian" route="bagian.index" icon="ti ti-vector-triangle"></x-sidebar.links>
+                            <x-sidebar.links title="Data Departemen" route="bagian.index" icon="ti ti-vector-triangle"></x-sidebar.links>
                             <x-sidebar.links title="Data User" route="users.index" icon="ti ti-users"></x-sidebar.links>
                             <li class="pc-item pc-caption">
                                 <label>Data Tugas</label>

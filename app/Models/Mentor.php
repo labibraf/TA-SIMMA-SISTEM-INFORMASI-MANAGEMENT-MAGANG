@@ -17,21 +17,34 @@ class Mentor extends Model
         'keahlian',
         'alamat',
         'foto',
-        'nama_lengkap',
     ];
+    /**
+     * Relasi ke User (One-to-One)
+     */
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Relasi ke Bagian (Many-to-One)
+     */
     public function bagian()
     {
         return $this->belongsTo(Bagian::class);
     }
-    public function peserta()
+
+    /**
+     * Relasi ke Peserta (One-to-Many)
+     */
+    public function pesertas()
     {
         return $this->hasMany(Peserta::class);
     }
+
+    /**
+     * Relasi ke LaporanAkhir (One-to-Many)
+     */
     public function laporanAkhir()
     {
         return $this->hasMany(LaporanAkhir::class);

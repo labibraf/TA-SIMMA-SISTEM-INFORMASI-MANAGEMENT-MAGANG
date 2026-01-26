@@ -33,7 +33,7 @@ class LaporanHarianController extends Controller
         if ($user->isAdmin()) {
             // Admin: melihat semua laporan.
             $laporanHarian = LaporanHarian::with(['peserta.user', 'peserta.bagian', 'penugasan'])
-                ->orderBy('created_at', 'asc')
+                ->orderBy('created_at', 'desc')
                 ->get();
         } elseif ($user->isMentor()) {
             // Mentor: melihat laporan dari peserta di bagiannya.
@@ -43,7 +43,7 @@ class LaporanHarianController extends Controller
                 // 2. Ambil laporan yang 'peserta_id'-nya ada di dalam daftar ID di atas.
                 $laporanHarian = LaporanHarian::whereIn('peserta_id', $pesertaIds)
                     ->with(['peserta.user', 'peserta.bagian', 'penugasan'])
-                    ->orderBy('created_at', 'asc')
+                    ->orderBy('created_at', 'desc')
                     ->get();
             }
         } elseif ($user->isPeserta()) {
@@ -51,7 +51,7 @@ class LaporanHarianController extends Controller
             if ($user->peserta) {
                 $laporanHarian = LaporanHarian::where('peserta_id', $user->peserta->id)
                     ->with(['peserta.user', 'peserta.bagian', 'penugasan'])
-                    ->orderBy('created_at', 'asc')
+                    ->orderBy('created_at', 'desc')
                     ->get();
             }
         }
@@ -129,6 +129,12 @@ class LaporanHarianController extends Controller
                     $q->where('status_tugas', 'Selesai')
                       ->where('is_approved', 0); // Belum di-approve
                 });
+        })
+        // EXCLUDE tugas GUGUR: deadline lewat DAN (is_approved != 1 DAN progress < 100)
+        ->where(function($query) {
+            $query->whereNull('deadline') // Tidak ada deadline
+                  ->orWhere('deadline', '>=', now()->startOfDay()) // Belum lewat deadline
+                  ->orWhere('is_approved', 1); // ATAU sudah di-approve (dianggap selesai)
         })
         ->get();
 
@@ -234,6 +240,20 @@ class LaporanHarianController extends Controller
             return redirect()->route('penugasans.show', $penugasan->id);
         }
 
+        // Cegah laporan jika deadline sudah lewat (GUGUR)
+        // KECUALI jika tugas sudah di-approve atau progress sudah 100%
+        if ($penugasan->deadline && now()->greaterThan($penugasan->deadline->endOfDay())) {
+            // Hitung progress terakhir
+            $latestLaporan = $penugasan->laporanHarian()->latest('created_at')->first();
+            $currentProgress = $latestLaporan ? $latestLaporan->progres_tugas : 0;
+
+            // Gugur jika belum di-approve DAN progress belum 100%
+            if ($penugasan->is_approved != 1 && $currentProgress < 100) {
+                Alert::error('Tugas Gugur', 'Tugas ini sudah melewati deadline dan dianggap gugur. Tidak dapat menambah laporan harian.');
+                return redirect()->route('penugasans.show', $penugasan->id);
+            }
+        }
+
         // Cegah laporan jika tugas sudah selesai dan di-approve
         if ($penugasan->status_tugas === 'Selesai' && ($penugasan->is_approved ?? false)) {
             return back()->withErrors([
@@ -301,7 +321,15 @@ class LaporanHarianController extends Controller
             abort(403, 'AKSES DITOLAK.');
         }
 
-        return view('laporan_harian.edit', compact('laporanHarian'));
+        // Cek apakah ini laporan terbaru untuk penugasan dan peserta ini
+        $latestLaporan = LaporanHarian::where('penugasan_id', $laporanHarian->penugasan_id)
+            ->where('peserta_id', $laporanHarian->peserta_id)
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        $isLatestReport = ($latestLaporan && $latestLaporan->id === $laporanHarian->id);
+
+        return view('laporan_harian.edit', compact('laporanHarian', 'isLatestReport'));
     }
 
 
@@ -314,13 +342,27 @@ class LaporanHarianController extends Controller
             abort(403, 'AKSES DITOLAK.');
         }
 
-        // Validasi input
-        $validated = $request->validate([
+        // Cek apakah ini laporan terbaru
+        $latestLaporan = LaporanHarian::where('penugasan_id', $laporanHarian->penugasan_id)
+            ->where('peserta_id', $laporanHarian->peserta_id)
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        $isLatestReport = ($latestLaporan && $latestLaporan->id === $laporanHarian->id);
+
+        // Validasi input - jika bukan laporan terbaru, progress tidak wajib dan akan diabaikan
+        $rules = [
             'tanggal_laporan' => 'required|date',
             'deskripsi_kegiatan' => 'nullable|string',
-            'progres_tugas' => 'required|integer|min:0|max:100',
             'file' => 'nullable|file|mimes:pdf,doc,docx,jpg,png|max:2048',
-        ], [
+        ];
+
+        // Hanya validasi progress jika ini laporan terbaru
+        if ($isLatestReport) {
+            $rules['progres_tugas'] = 'required|integer|min:0|max:100';
+        }
+
+        $validated = $request->validate($rules, [
             'tanggal_laporan.required' => 'Tanggal laporan wajib diisi.',
             'deskripsi_kegiatan.string' => 'Deskripsi kegiatan harus berupa teks.',
             'progres_tugas.required' => 'Persentase progres wajib diisi.',
@@ -331,6 +373,30 @@ class LaporanHarianController extends Controller
             'file.mimes' => 'File harus berformat PDF, DOC, DOCX, JPG, atau PNG.',
             'file.max' => 'File maksimal 2MB.',
         ]);
+
+        // Jika ini laporan terbaru, validasi progres
+        if ($isLatestReport) {
+            $currentProgress = $laporanHarian->progres_tugas;
+            if ($request->progres_tugas < $currentProgress) {
+                return back()->withErrors([
+                    'progres_tugas' => 'Progress tidak boleh kurang dari progress laporan ini (' . $currentProgress . '%)'
+                ])->withInput();
+            }
+
+            // Tentukan status tugas
+            $progress = (int) $validated['progres_tugas'];
+            if ($progress >= 100) {
+                $status = 'Selesai';
+            } elseif ($progress > 0) {
+                $status = 'Dikerjakan';
+            } else {
+                $status = 'Belum';
+            }
+            $validated['status_tugas'] = $status;
+        } else {
+            // Jika bukan laporan terbaru, progress tidak berubah
+            unset($validated['progres_tugas']);
+        }
 
         // Simpan file lama untuk dihapus jika ada file baru
         $oldFile = $laporanHarian->file;

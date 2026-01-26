@@ -27,13 +27,13 @@
                         <div class="col-md-3">
                             <div class="mb-3">
                                 <label class="text-muted">Total Peserta</label>
-                                <h5 class="mb-0">{{ $bagian->peserta->count() }} Orang</h5>
+                                <h5 class="mb-0">{{ $bagian->pesertas->count() }} Orang</h5>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="mb-3">
                                 <label class="text-muted">Total Mentor</label>
-                                <h5 class="mb-0">{{ $bagian->mentor->count() }} Orang</h5>
+                                <h5 class="mb-0">{{ $bagian->mentors->count() }} Orang</h5>
                             </div>
                         </div>
                     </div>
@@ -52,7 +52,7 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    @if($bagian->peserta->isEmpty())
+                    @if($bagian->pesertas->isEmpty())
                         <div class="text-center py-5">
                             <i class="ti ti-user-off text-muted" style="font-size: 3rem;"></i>
                             <p class="text-muted mt-2">Belum ada peserta di departemen ini</p>
@@ -71,7 +71,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($bagian->peserta as $peserta)
+                                    @foreach ($bagian->pesertas as $peserta)
                                     <tr>
                                         <td>{{ $loop->iteration }}</td>
                                         <td>
@@ -109,7 +109,7 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    @if($bagian->mentor->isEmpty())
+                    @if($bagian->mentors->isEmpty())
                         <div class="text-center py-5">
                             <i class="ti ti-user-off text-muted" style="font-size: 3rem;"></i>
                             <p class="text-muted mt-2">Belum ada mentor di departemen ini</p>
@@ -128,7 +128,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($bagian->mentor as $mentor)
+                                    @foreach ($bagian->mentors as $mentor)
                                     <tr>
                                         <td>{{ $loop->iteration }}</td>
                                         <td><strong>{{ $mentor->nama_mentor }}</strong></td>
