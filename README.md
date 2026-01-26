@@ -221,9 +221,9 @@ Setelah menjalankan seeder, gunakan akun berikut untuk login:
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | admin@example.com | password |
-| Mentor | mentor@example.com | password |
-| Peserta | peserta@example.com | password |
+| Admin | admin@gmail.com | password |
+| Mentor | bukuran@gmail.com | password |
+| Peserta | budi@gmail.com | password |
 
 > ⚠️ **Penting**: Segera ubah password default setelah login pertama kali!
 
@@ -267,20 +267,6 @@ project-ta3/
 │   └── ...
 └── ...
 ```
-
----
-
-## 🎨 Screenshots
-
-### Dashboard Admin
-![Dashboard Admin](https://via.placeholder.com/800x400?text=Dashboard+Admin)
-
-### Manajemen Penugasan
-![Manajemen Penugasan](https://via.placeholder.com/800x400?text=Manajemen+Penugasan)
-
-### Repository Laporan
-![Repository](https://via.placeholder.com/800x400?text=Repository+Laporan)
-
 ---
 
 ## 📝 Fitur Unggulan
@@ -353,38 +339,24 @@ Kontribusi selalu diterima dengan senang hati! Jika Anda ingin berkontribusi:
 
 ---
 
-## 📄 Lisensi
-
-Project ini dilisensikan di bawah [MIT License](LICENSE).
-
----
-
 ## 👨‍💻 Developer
 
-**Labib Rafif**  
+**M Labib Rafsanjani A**  
 Mahasiswa Tugas Akhir  
 Peserta Magang di Kapushansiber Kemhan, Jakarta
 
 - GitHub: [@labibraf](https://github.com/labibraf)
-- Email: [your-email@example.com]
+- Email: [labibra@gmail.com]
 
 ---
 
 ## 🙏 Acknowledgments
 
 - **Kapushansiber Kemhan** - Pondok Labu, Jakarta Selatan
-- **Pembimbing Tugas Akhir** - [Nama Pembimbing]
-- **Mentor Magang** - [Nama Mentor]
+- **Pembimbing Tugas Akhir** - [Ibu Intan S.kom, M.T]
+- **Mentor Magang** - [Bpk Kol Rudi]
 - **Laravel Community**
 - **Mantis Bootstrap Admin Template**
-
----
-
-## 📞 Kontak & Support
-
-Jika Anda memiliki pertanyaan, saran, atau menemukan bug, silakan:
-- Buat [Issue](https://github.com/labibraf/project-ta3/issues) di GitHub
-- Email: [your-email@example.com]
 
 ---
 
