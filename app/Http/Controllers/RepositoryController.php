@@ -248,11 +248,6 @@ class RepositoryController extends Controller
                 return redirect()->route('repository.index');
             }
 
-            // Increment views (hanya untuk yang published)
-            if ($repository->is_published) {
-                $this->repositoryRepo->incrementViews($id);
-            }
-
             // Ambil repository terkait (same category or same year)
             $relatedRepositories = \App\Models\Repository::published()
                 ->where('id', '!=', $id)
@@ -283,6 +278,13 @@ class RepositoryController extends Controller
 
         try {
             $repository = $this->repositoryRepo->findById($id);
+
+            // Cek apakah repository sudah published
+            if ($repository->is_published) {
+                Alert::warning('Repository Terkunci', 'Repository yang sudah dipublikasikan tidak dapat diedit. Silakan unpublish terlebih dahulu.');
+                return redirect()->route('repository.show', $id);
+            }
+
             $bagians = Bagian::orderBy('nama_bagian', 'asc')->get();
             $categories = ['Teknik', 'Non-Teknik', 'Manajemen', 'Penelitian', 'Lainnya'];
 
@@ -304,18 +306,26 @@ class RepositoryController extends Controller
             return redirect()->route('repository.index');
         }
 
-        $validated = $request->validate([
-            'judul' => 'required|string|max:255',
-            'nama_peserta' => 'nullable|string|max:255', // untuk repository manual
-            'deskripsi' => 'required|string',
-            'deskripsi_lengkap' => 'nullable|string',
-            'tahun_magang' => 'required|digits:4',
-            'bagian' => 'nullable|string|max:255',
-            'kategori' => 'nullable|string|max:255',
-            'is_published' => 'nullable|boolean',
-        ]);
-
         try {
+            $repository = $this->repositoryRepo->findById($id);
+
+            // Cek apakah repository sudah published
+            if ($repository->is_published) {
+                Alert::warning('Repository Terkunci', 'Repository yang sudah dipublikasikan tidak dapat diupdate. Silakan unpublish terlebih dahulu.');
+                return redirect()->route('repository.show', $id);
+            }
+
+            $validated = $request->validate([
+                'judul' => 'required|string|max:255',
+                'nama_peserta' => 'nullable|string|max:255', // untuk repository manual
+                'deskripsi' => 'required|string',
+                'deskripsi_lengkap' => 'nullable|string',
+                'tahun_magang' => 'required|digits:4',
+                'bagian' => 'nullable|string|max:255',
+                'kategori' => 'nullable|string|max:255',
+                'is_published' => 'nullable|boolean',
+            ]);
+
             $repository = $this->repositoryRepo->update($id, $validated);
             Alert::success('Berhasil', 'Repository berhasil diupdate.');
             return redirect()->route('repository.show', $id);
@@ -337,6 +347,14 @@ class RepositoryController extends Controller
         }
 
         try {
+            $repository = $this->repositoryRepo->findById($id);
+
+            // Cek apakah repository sudah published
+            if ($repository->is_published) {
+                Alert::warning('Repository Terkunci', 'Repository yang sudah dipublikasikan tidak dapat dihapus. Silakan unpublish terlebih dahulu.');
+                return redirect()->route('repository.show', $id);
+            }
+
             $this->repositoryRepo->delete($id);
             Alert::success('Berhasil', 'Repository berhasil dihapus.');
             return redirect()->route('repository.index');

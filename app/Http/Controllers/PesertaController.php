@@ -154,7 +154,7 @@ class PesertaController extends Controller
         // Pastikan SKS selalu tersimpan dari input form
         $data['sks'] = $request->sks ?? 0;
 
-        // Hitung target waktu dan waktu maksimum berdasarkan metode yang dipilih
+        // Hitung target waktu berdasarkan metode yang dipilih
         if ($request->target_method === 'sks') {
             $data['target_waktu_tugas'] = round(($request->sks * 45), 2);
             // SKS sudah di-set di atas, tidak perlu set ulang
@@ -163,12 +163,7 @@ class PesertaController extends Controller
             // Tetap simpan SKS dari input form meskipun menggunakan metode manual
         }
 
-        // Hitung waktu maksimum (durasi magang * 8 jam)
-        $startDate = \Carbon\Carbon::parse($request->tanggal_mulai_magang);
-        $endDate = \Carbon\Carbon::parse($request->tanggal_selesai_magang);
-        $jumlahHari = $startDate->diffInDays($endDate) + 1;
-        $data['waktu_maksimum'] = $jumlahHari * 8;
-
+        // waktu_maksimum akan dihitung otomatis oleh accessor di Model berdasarkan hari kerja
         $data['waktu_tugas_tercapai'] = 0;
 
         if ($request->hasFile('foto')) {
@@ -365,11 +360,7 @@ class PesertaController extends Controller
                 // Tetap simpan SKS dari input form meskipun menggunakan metode manual
             }
 
-            // Hitung waktu maksimum (durasi magang * 8 jam)
-            $startDate = \Carbon\Carbon::parse($request->tanggal_mulai_magang);
-            $endDate = \Carbon\Carbon::parse($request->tanggal_selesai_magang);
-            $jumlahHari = $startDate->diffInDays($endDate) + 1;
-            $dataToUpdate['waktu_maksimum'] = $jumlahHari * 8;
+            // waktu_maksimum akan dihitung otomatis oleh accessor di Model berdasarkan hari kerja
 
             // Cek apakah ada file foto baru di request
             if ($request->hasFile('foto')) {
@@ -418,13 +409,7 @@ class PesertaController extends Controller
                 // Tetap simpan SKS dari input form meskipun menggunakan metode manual
             }
 
-            // Hitung waktu maksimum jika tanggal tersedia
-            if ($peserta->tanggal_mulai_magang && $peserta->tanggal_selesai_magang) {
-                $startDate = \Carbon\Carbon::parse($peserta->tanggal_mulai_magang);
-                $endDate = \Carbon\Carbon::parse($peserta->tanggal_selesai_magang);
-                $jumlahHari = $startDate->diffInDays($endDate) + 1;
-                $updateData['waktu_maksimum'] = $jumlahHari * 8;
-            }
+            // waktu_maksimum akan dihitung otomatis oleh accessor di Model berdasarkan hari kerja
 
             $peserta->update($updateData);
             return redirect()->route('peserta.index');

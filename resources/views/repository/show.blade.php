@@ -29,10 +29,6 @@
                         <span class="badge bg-info">
                             <i class="fas fa-calendar me-1"></i>{{ $repository->tahun_magang }}
                         </span>
-
-                        <span class="badge bg-secondary">
-                            <i class="fas fa-eye me-1"></i>{{ $repository->views }} views
-                        </span>
                     </div>
 
                     {{-- Judul --}}
@@ -70,7 +66,7 @@
                                     <div class="col-md-8">
                                         <h6 class="mb-2">{{ $repository->laporanAkhir->judul_laporan }}</h6>
                                         <p class="text-muted mb-2">
-                                            {{ $repository->laporanAkhir->deskripsi_laporan }}
+                                            {{ $repository->laporanAkhir->deskripsi_repository ?? 'N/A' }}
                                         </p>
                                         <div class="text-muted">
                                             <i class="fas fa-user me-2"></i>
@@ -124,38 +120,61 @@
 
                     {{-- Admin Actions --}}
                     @if(Auth::user()->isAdmin())
-                    <div class="card border-warning mb-4">
-                        <div class="card-header bg-warning">
+                    <div class="card border-3 mb-4">
+                        <div class="card-header bg-orange-200">
                             <h6 class="mb-0">
                                 <i class="fas fa-tools me-2"></i>Admin Actions
                             </h6>
                         </div>
                         <div class="card-body">
-                            <div class="d-flex gap-2 flex-wrap">
-                                <a href="{{ route('repository.edit', $repository->id) }}" class="btn btn-warning">
-                                    <i class="fas fa-edit me-1"></i>Edit Repository
-                                </a>
+                            @if($repository->is_published)
+                                {{-- Repository Published - Harus unpublish dulu sebelum edit/hapus --}}
+                                <div class="alert alert-warning mb-3">
+                                    <i class="fas fa-lock me-2"></i>
+                                    <small><strong>Repository Terkunci:</strong> Unpublish terlebih dahulu untuk mengedit atau menghapus.</small>
+                                </div>
 
-                                @if($repository->is_published)
+                                <div class="d-flex gap-2 flex-wrap">
                                     <form method="POST" action="{{ route('repository.unpublish', $repository->id) }}" class="d-inline">
                                         @csrf
-                                        <button type="submit" class="btn btn-secondary" onclick="return confirm('Yakin ingin unpublish repository ini?')">
+                                        @method('PATCH')
+                                        <button type="submit" class="btn btn-warning" onclick="return confirm('Yakin ingin unpublish repository ini? Repository akan kembali menjadi draft.')">
                                             <i class="fas fa-eye-slash me-1"></i>Unpublish
                                         </button>
                                     </form>
-                                @else
+
+                                    <button type="button" class="btn btn-secondary disabled" title="Unpublish terlebih dahulu untuk mengedit">
+                                        <i class="fas fa-edit me-1"></i>Edit (Terkunci)
+                                    </button>
+
+                                    <button type="button" class="btn btn-secondary disabled" title="Unpublish terlebih dahulu untuk menghapus">
+                                        <i class="fas fa-trash me-1"></i>Hapus (Terkunci)
+                                    </button>
+                                </div>
+                            @else
+                                {{-- Repository Draft - Bisa edit/hapus/publish --}}
+                                <div class="alert alert-info mb-3">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <small><strong>Status Draft:</strong> Repository ini belum dipublikasikan. Anda dapat mengedit atau publish.</small>
+                                </div>
+
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <a href="{{ route('repository.edit', $repository->id) }}" class="btn btn-warning">
+                                        <i class="fas fa-edit me-1"></i>Edit Repository
+                                    </a>
+
                                     <form method="POST" action="{{ route('repository.publish', $repository->id) }}" class="d-inline">
                                         @csrf
-                                        <button type="submit" class="btn btn-success" onclick="return confirm('Yakin ingin publish repository ini?')">
+                                        <button type="submit" class="btn btn-success" onclick="return confirm('Yakin ingin publish repository ini? Setelah dipublish, repository akan terkunci.')">
                                             <i class="fas fa-check-circle me-1"></i>Publish
                                         </button>
                                     </form>
-                                @endif
 
-                                <button type="button" class="btn btn-danger" onclick="confirmDelete()">
-                                    <i class="fas fa-trash me-1"></i>Hapus
-                                </button>
-                            </div>
+                                    <button type="button" class="btn btn-danger" onclick="confirmDelete()">
+                                        <i class="fas fa-trash me-1"></i>Hapus
+                                    </button>
+                                </div>
+                            @endif
                         </div>
                     </div>
                     @endif

@@ -76,8 +76,7 @@ class SyncLaporanAkhirToRepository extends Command
                     'tahun_magang' => $tahunMagang,
                     'bagian' => $laporan->peserta->bagian->nama_bagian ?? null,
                     'kategori' => null, // Bisa diisi manual nanti
-                    'views' => 0,
-                    'is_published' => true, // Langsung publish
+                    'is_published' => true,
                     'published_at' => now(),
                 ]);
 

@@ -18,7 +18,9 @@ return new class extends Migration
             // 1. Mode Sistem: dari laporan akhir yang sudah di-ACC (ada relasi)
             // 2. Mode Manual: upload file PDF langsung tanpa relasi (untuk arsip lama/eksternal)
             $table->foreignId('laporan_akhir_id')->nullable()->constrained('laporan_akhirs')->onDelete('cascade');
+            $table->string('file_path')->nullable(); // File PDF dari laporan akhir atau upload manual
             $table->foreignId('peserta_id')->nullable()->constrained('pesertas')->onDelete('cascade');
+            $table->string('nama_peserta')->nullable(); // Nama peserta untuk mode manual
 
             $table->string('judul'); // Judul repository
             $table->text('deskripsi'); // Deskripsi singkat repository
@@ -26,7 +28,6 @@ return new class extends Migration
             $table->string('tahun_magang', 4); // Tahun pelaksanaan magang (misal: 2024, 2025)
             $table->string('bagian')->nullable(); // Bagian/Divisi tempat magang
             $table->string('kategori')->nullable(); // Kategori repository (misal: Teknik, Non-Teknik, dll)
-            $table->integer('views')->default(0); // Jumlah views/kunjungan
             $table->boolean('is_published')->default(false); // Status publikasi (draft/published)
             $table->timestamp('published_at')->nullable(); // Tanggal publikasi
             $table->timestamps();

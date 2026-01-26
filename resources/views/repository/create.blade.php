@@ -3,18 +3,6 @@
 
 @section('content')
 <div class="container-fluid">
-    {{-- Breadcrumb --}}
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="{{ route('repository.index') }}">
-                    <i class="fas fa-book-open me-1"></i>Repository
-                </a>
-            </li>
-            <li class="breadcrumb-item active" aria-current="page">Tambah Repository</li>
-        </ol>
-    </nav>
-
     <div class="row justify-content-center">
         <div class="col-lg-10">
             {{-- Header Card --}}
@@ -194,7 +182,7 @@
                         {{-- Deskripsi Lengkap --}}
                         <div class="mb-4">
                             <label for="deskripsi_lengkap" class="form-label">
-                                <i class="fas fa-file-alt me-1"></i>Deskripsi Lengkap (Auto-fill dari Laporan)
+                                <i class="fas fa-file-alt me-1"></i>Deskripsi Lengkap
                             </label>
                             <textarea name="deskripsi_lengkap"
                                       id="deskripsi_lengkap"

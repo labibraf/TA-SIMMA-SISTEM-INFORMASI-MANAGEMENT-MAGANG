@@ -2,6 +2,82 @@
 
 @section('content')
 <div class="">
+    {{-- Header Section --}}
+    <div class="row mb-1">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm bg-blue-500 text-white">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-2 text-white">
+                                <i class="ti ti-dashboard me-2"></i>Dashboard Mentor
+                            </h2>
+                            <p class="mb-0 mt-2 opacity-80">Monitoring & Statistik Peserta Magang - <strong>{{ $mentor->bagian->nama_bagian ?? '-' }}</strong></p>
+                        </div>
+                        <div>
+                            <span class="badge rounded-pill bg-white text-primary fs-5 px-4 py-2">
+                                <i class="ti ti-calendar me-2"></i>{{ now()->format('d M Y') }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Filter Section --}}
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" action="{{ route('home') }}" id="filterForm" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label for="tahun" class="form-label fw-semibold">
+                                <i class="ti ti-calendar-event me-1"></i>Tahun
+                            </label>
+                            <select name="tahun" id="tahun" class="form-select">
+                                <option value="">Semua Tahun</option>
+                                @foreach($tahunList as $year)
+                                    <option value="{{ $year }}" {{ request('tahun') == $year ? 'selected' : '' }}>
+                                        {{ $year }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="bulan" class="form-label fw-semibold">
+                                <i class="ti ti-calendar me-1"></i>Bulan
+                            </label>
+                            <select name="bulan" id="bulan" class="form-select">
+                                <option value="">Semua Bulan</option>
+                                <option value="1" {{ request('bulan') == 1 ? 'selected' : '' }}>Januari</option>
+                                <option value="2" {{ request('bulan') == 2 ? 'selected' : '' }}>Februari</option>
+                                <option value="3" {{ request('bulan') == 3 ? 'selected' : '' }}>Maret</option>
+                                <option value="4" {{ request('bulan') == 4 ? 'selected' : '' }}>April</option>
+                                <option value="5" {{ request('bulan') == 5 ? 'selected' : '' }}>Mei</option>
+                                <option value="6" {{ request('bulan') == 6 ? 'selected' : '' }}>Juni</option>
+                                <option value="7" {{ request('bulan') == 7 ? 'selected' : '' }}>Juli</option>
+                                <option value="8" {{ request('bulan') == 8 ? 'selected' : '' }}>Agustus</option>
+                                <option value="9" {{ request('bulan') == 9 ? 'selected' : '' }}>September</option>
+                                <option value="10" {{ request('bulan') == 10 ? 'selected' : '' }}>Oktober</option>
+                                <option value="11" {{ request('bulan') == 11 ? 'selected' : '' }}>November</option>
+                                <option value="12" {{ request('bulan') == 12 ? 'selected' : '' }}>Desember</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ti ti-filter me-1"></i>Terapkan Filter
+                            </button>
+                            <a href="{{ route('home') }}" class="btn btn-outline-secondary">
+                                <i class="ti ti-refresh me-1"></i>Reset Filter
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- PRIORITAS 1: Kartu Statistik Utama (At-a-Glance Cards) -->
     <div class="row">
         <div class="col-md-3 col-sm-6">
@@ -27,7 +103,7 @@
         <div class="col-md-3 col-sm-6">
             <div class="card social-widget-card bg-warning">
                 <div class="card-body">
-                    <h3 class="text-white m-0">{{ $tugasAktif }} Tugas Aktif</h3>
+                    <h3 class="text-white m-0">{{ $tugasAktif }} Tugas Tersedia</h3>
                     <span class="m-t-10">Dari {{ $totalTugas }} Tugas</span>
                     <i class="ti ti-clipboard-check"></i>
                 </div>
@@ -51,7 +127,7 @@
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="ti ti-chart-pie me-2"></i>Distribusi Progress Peserta</h5>
+                        <h5 class="mb-0"><i class="ti ti-chart-pie me-2"></i>Progress Peserta</h5>
                     </div>
                     <div class="card-body">
                         <div id="chart-progress-distribusi" style="height: 300px;"></div>
@@ -63,7 +139,7 @@
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="ti ti-chart-donut me-2"></i>Status Penugasan</h5>
+                        <h5 class="mb-0"><i class="ti ti-chart-donut me-2"></i>Status Tugas</h5>
                     </div>
                     <div class="card-body">
                         <div id="chart-status-penugasan" style="height: 300px;"></div>
@@ -170,7 +246,7 @@
                                 <tr>
                                     <th>Nama Peserta</th>
                                     <th>Asal Instansi</th>
-                                    <th>Progress Magang</th>
+                                    <th>Progress Waktu Magang</th>
                                     <th>Status</th>
                                     <th class="text-center">Aksi</th>
                                 </tr>
@@ -203,11 +279,11 @@
                                     </td>
                                     <td>
                                         @if($peserta->progress_percentage >= 75)
-                                            <span class="badge bg-success">Segera Selesai</span>
+                                            <span class="badge bg-warning ">Segera Selesai</span>
                                         @elseif($peserta->progress_percentage >= 25)
-                                            <span class="badge bg-warning">Sedang Berlangsung</span>
+                                            <span class="badge bg-gray-400 text-gray-700">Sedang Berlangsung</span>
                                         @else
-                                            <span class="badge bg-danger">Belum Mulai</span>
+                                            <span class="badge bg-gray-200 text-gray-700">Belum Mulai</span>
                                         @endif
                                     </td>
                                     <td class="text-center">
@@ -300,79 +376,6 @@
             </div>
         </div>
     </div>
-
-    <!-- PRIORITAS 2: Tabel Log Laporan Harian Terbaru -->
-    <!-- <div class="row mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="ti ti-file-text me-2"></i>Log Laporan Harian Terbaru</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Nama Peserta</th>
-                                    <th>Aktivitas/Tugas</th>
-                                    <th>Tanggal</th>
-                                    <th class="text-center">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($laporanHarianTerbaru as $laporan)
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="avtar avtar-s bg-light-info me-2">
-                                                <i class="ti ti-user"></i>
-                                            </div>
-                                            <div>
-                                                <h6 class="mb-0">{{ $laporan->peserta->nama_lengkap }}</h6>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div>
-                                            @if($laporan->penugasan)
-                                                <h6 class="mb-0">{{ Str::limit($laporan->penugasan->judul_tugas, 40) }}</h6>
-                                                <small class="text-muted">{{ Str::limit($laporan->deskripsi_kegiatan, 50) }}</small>
-                                            @else
-                                                <p class="mb-0">{{ Str::limit($laporan->deskripsi_kegiatan, 60) }}</p>
-                                            @endif
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <small class="text-muted">
-                                            <i class="ti ti-calendar me-1"></i>
-                                            {{ \Carbon\Carbon::parse($laporan->created_at)->format('d M Y') }}
-                                        </small>
-                                    </td>
-                                    <td class="text-center">
-                                        @if($laporan->penugasan_id)
-                                            <a href="{{ route('penugasans.show', $laporan->penugasan_id) }}" class="btn btn-sm btn-outline-primary">
-                                                <i class="ti ti-eye"></i>
-                                            </a>
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="4" class="text-center py-4">
-                                        <i class="ti ti-file-text fs-1 text-muted d-block mb-2"></i>
-                                        <p class="text-muted mb-0">Belum ada laporan harian</p>
-                                    </td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div> -->
 </div>
 
 @push('styles')
@@ -434,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function() {
             height: 300
         },
         colors: ['#dc3545', '#ffc107', '#2dce89'],
-        labels: ['Progress (<25%)', 'Progress (25-75%)', 'Progress (>75%)'],
+        labels: ['Magang Baru (<25%)', 'Sedang Berjalan (25-75%)', 'Hampir Selesai (>75%)'],
         legend: {
             position: 'bottom',
             fontSize: '12px'
@@ -475,13 +478,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Chart: Status Penugasan
     const statusPenugasanOptions = {
-        series: [{{ $tugasSelesai }}, {{ $tugasDikerjakan }}, {{ $tugasBelumDimulai }}],
+        series: [{{ $tugasSelesai }}, {{ $tugasDikerjakan }}, {{ $tugasTerlambatGugur }}],
         chart: {
             type: 'pie',
             height: 300
         },
         colors: ['#2dce89', '#ffc107', '#dc3545'],
-        labels: ['Selesai', 'Dikerjakan', 'Belum Dimulai'],
+        labels: ['Selesai', 'Dikerjakan', 'Terlambat (Gugur)'],
         legend: {
             position: 'bottom',
             fontSize: '12px'

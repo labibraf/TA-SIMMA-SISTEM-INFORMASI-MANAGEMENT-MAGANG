@@ -6,9 +6,9 @@
     {{-- Tampilkan informasi jika peserta belum memenuhi syarat --}}
     @if(Auth::user()->isPeserta() && !$bisaLaporanAkhir && $laporanAkhir->isEmpty())
         <div class="card border-warning">
-            <div class="card-header bg-warning text-white">
-                <h5 class="mb-0">
-                    <i class="ti ti-alert-triangle me-2"></i>
+            <div class="card-header bg-warning">
+                <h5 class="mb-0 text-white">
+                    <i class="ti ti-alert-triangle me-2 "></i>
                     Belum Memenuhi Syarat Laporan Akhir
                 </h5>
             </div>
@@ -20,7 +20,7 @@
                                 <i class="ti ti-lock" style="font-size: 2.5rem;"></i>
                             </div>
                             <h4 class="mb-3">Anda Belum Dapat Membuat Laporan Akhir</h4>
-                            <p class="text-muted">Untuk dapat membuat laporan akhir, Anda harus menyelesaikan target minimum jam magang terlebih dahulu.</p>
+                            <p class="text-muted">Untuk dapat membuat laporan akhir, Anda harus menyelesaikan target jam magang terlebih dahulu.</p>
                         </div>
 
                         @if($alasanTidakBisa)
@@ -34,7 +34,7 @@
                                     <div class="col-4">
                                         <div class="p-3 bg-white rounded">
                                             <h5 class="text-primary mb-1">{{ number_format($alasanTidakBisa['target'], 1) }} jam</h5>
-                                            <small class="text-muted">Target Minimum</small>
+                                            <small class="text-muted">Target Jam Magang</small>
                                         </div>
                                     </div>
                                     <div class="col-4">
@@ -53,10 +53,10 @@
 
                                 <div class="mb-3">
                                     <div class="d-flex justify-content-between mb-2">
-                                        <span class="text-muted">Progress Anda:</span>
+                                        <span class="text-muted">Progress Target Waktu:</span>
                                         <strong>{{ number_format($alasanTidakBisa['progress'], 1) }}%</strong>
                                     </div>
-                                    <div class="progress" style="height: 20px; ; border: 1px solid #ccc;">
+                                    <div class="progress" style="height: 20px; border: 1px solid #ccc;">
                                         <div class="progress-bar bg-{{ $alasanTidakBisa['progress'] >= 75 ? 'success' : ($alasanTidakBisa['progress'] >= 50 ? 'warning' : 'danger') }}"
                                              role="progressbar"
                                              style="width: {{ $alasanTidakBisa['progress'] }}% "
@@ -141,15 +141,25 @@
             <h2 class="text-center mb-0">Daftar Laporan Akhir</h2>
 
             @if(Auth::user()->isPeserta())
-                @if(!Auth::user()->peserta->is_laporan_akhir_selesai && $bisaLaporanAkhir)
-                    <a href="{{ route('laporan-akhir.create') }}" class="btn btn-primary">
-                        <i class="ti ti-plus me-1"></i>Buat Laporan Akhir
-                    </a>
-                @elseif(Auth::user()->peserta->is_laporan_akhir_selesai)
+                @php
+                    // Cek apakah ada laporan yang diterima
+                    $laporanDiterima = $laporanAkhir->where('status', 'terima')->first();
+                    // Cek apakah ada laporan yang sedang dalam review atau draft
+                    $laporanAktif = $laporanAkhir->whereIn('status', ['draft', 'review'])->first();
+                @endphp
+
+                @if($laporanDiterima)
+                    {{-- Jika laporan sudah diterima, sistem terkunci --}}
                     <span class="badge bg-success fs-6">
                         <i class="ti ti-check me-1"></i>Laporan Akhir Sudah Diterima - Magang Selesai
                     </span>
-                @else
+                @elseif(!$laporanAktif && $bisaLaporanAkhir)
+                    {{-- Jika tidak ada laporan aktif dan memenuhi syarat, bisa buat baru --}}
+                    <a href="{{ route('laporan-akhir.create') }}" class="btn btn-primary">
+                        <i class="ti ti-plus me-1"></i>Buat Laporan Akhir
+                    </a>
+                @elseif(!$bisaLaporanAkhir)
+                    {{-- Jika belum memenuhi syarat --}}
                     <span class="badge bg-warning fs-6">
                         <i class="ti ti-alert-circle me-1"></i>Belum Memenuhi Syarat
                     </span>
@@ -224,21 +234,41 @@
                                         </td>
                                         <td class="text-center">
                                             @if($item->status === 'draft')
+                                                {{-- Draft: Peserta bisa edit, lihat, hapus --}}
                                                 <a href="{{ route('laporan-akhir.edit', $item->id) }}" class="btn btn-warning btn-sm" title="Edit">
-                                                    <i class="fas fa-edit"></i>
+                                                    <i class="ti ti-edit"></i>
                                                 </a>
                                                 <a href="{{ route('laporan-akhir.show', $item->id) }}" class="btn btn-info btn-sm" title="Detail">
-                                                    <i class="fas fa-eye"></i>
+                                                    <i class="ti ti-eye"></i>
                                                 </a>
                                                 <button type="button" class="btn btn-danger btn-sm"
                                                         data-bs-toggle="modal" data-bs-target="#confirmDeleteModal{{ $item->id }}"
                                                         title="Hapus">
-                                                    <i class="fas fa-trash"></i>
+                                                    <i class="ti ti-trash"></i>
                                                 </button>
-                                            @else
-                                                <a href="{{ route('laporan-akhir.show', $item->id) }}" class="btn btn-info btn-sm" title="Detail">
-                                                    <i class="fas fa-eye"></i>
+                                            @elseif($item->status === 'review')
+                                                {{-- Review: Peserta bisa edit dan lihat (tidak bisa hapus) --}}
+                                                <a href="{{ route('laporan-akhir.edit', $item->id) }}"
+                                                   class="btn btn-warning btn-sm"
+                                                   title="Edit laporan - Anda bisa memperbaiki laporan saat direview">
+                                                    <i class="ti ti-edit"></i>
                                                 </a>
+                                                <a href="{{ route('laporan-akhir.show', $item->id) }}" class="btn btn-info btn-sm" title="Detail">
+                                                    <i class="ti ti-eye"></i>
+                                                </a>
+                                            @elseif($item->status === 'tolak')
+                                                {{-- Tolak: Peserta hanya bisa lihat (history) --}}
+                                                <a href="{{ route('laporan-akhir.show', $item->id) }}" class="btn btn-info btn-sm" title="Detail">
+                                                    <i class="ti ti-eye"></i>
+                                                </a>
+                                            @elseif($item->status === 'terima')
+                                                {{-- Terima: Sistem terkunci, hanya lihat --}}
+                                                <a href="{{ route('laporan-akhir.show', $item->id) }}" class="btn btn-info btn-sm" title="Detail">
+                                                    <i class="ti ti-eye"></i>
+                                                </a>
+                                                <span class="btn btn-secondary btn-sm disabled" title="Sudah diterima dan di-publish">
+                                                    <i class="ti ti-lock"></i>
+                                                </span>
                                             @endif
                                         </td>
                                     </tr>
@@ -256,13 +286,21 @@
                                         </td>
                                         <td class="text-center">
                                             <a href="{{ route('laporan-akhir.show', $item->id) }}" class="btn btn-info btn-sm" title="Detail">
-                                                <i class="fas fa-eye"></i>
+                                                <i class="ti ti-eye"></i>
                                             </a>
-                                            <button type="button" class="btn btn-danger btn-sm"
-                                                        data-bs-toggle="modal" data-bs-target="#confirmDeleteModal{{ $item->id }}"
-                                                        title="Hapus">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            @if($item->status === 'terima')
+                                                {{-- Terima: Terkunci, hanya lihat --}}
+                                                <span class="btn btn-secondary btn-sm disabled" title="Sudah diterima dan di-publish">
+                                                    <i class="ti ti-lock"></i>
+                                                </span>
+                                            @else
+                                                {{-- Draft, Review, Tolak: Bisa hapus --}}
+                                                <button type="button" class="btn btn-danger btn-sm"
+                                                            data-bs-toggle="modal" data-bs-target="#confirmDeleteModalMentor{{ $item->id }}"
+                                                            title="Hapus">
+                                                    <i class="ti ti-trash"></i>
+                                                </button>
+                                            @endif
                                         </td>
                                     </tr>
                                 @else
@@ -283,13 +321,21 @@
                                         <td class="text-center">
                                             <div class="btn-group" role="group">
                                                 <a href="{{ route('laporan-akhir.show', $item->id) }}" class="btn btn-info btn-sm" title="Detail">
-                                                    <i class="fas fa-eye"></i>
+                                                    <i class="ti ti-eye"></i>
                                                 </a>
-                                                <button type="button" class="btn btn-danger btn-sm"
-                                                        data-bs-toggle="modal" data-bs-target="#confirmDeleteModal{{ $item->id }}"
-                                                        title="Hapus">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
+                                                @if($item->status === 'terima')
+                                                    {{-- Terima: Terkunci, hanya lihat --}}
+                                                    <span class="btn btn-secondary btn-sm disabled" title="Sudah diterima dan di-publish">
+                                                        <i class="ti ti-lock"></i>
+                                                    </span>
+                                                @else
+                                                    {{-- Draft, Review, Tolak: Bisa hapus --}}
+                                                    <button type="button" class="btn btn-danger btn-sm"
+                                                            data-bs-toggle="modal" data-bs-target="#confirmDeleteModalAdmin{{ $item->id }}"
+                                                            title="Hapus">
+                                                        <i class="ti ti-trash"></i>
+                                                    </button>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>
@@ -304,19 +350,74 @@
     @endif
 </div>
 
-{{-- Modal Konfirmasi Hapus (hanya untuk admin) --}}
+{{-- Modal Konfirmasi Hapus --}}
 @foreach($laporanAkhir as $item)
-    @if(!Auth::user()->isPeserta() && !Auth::user()->isMentor())
+    {{-- Modal untuk Peserta (hanya draft yang bisa dihapus) --}}
+    @if(Auth::user()->isPeserta() && $item->status === 'draft')
         <div class="modal fade" id="confirmDeleteModal{{ $item->id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title">Konfirmasi Penghapusan</h5>
+                    <div class="modal-header bg-red-600">
+                        <h5 class="modal-title text-white">Konfirmasi Penghapusan</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <p>Apakah Anda yakin ingin menghapus laporan akhir <strong>{{ Str::limit($item->judul_laporan, 30) }}</strong>?</p>
                         <p class="text-muted">Data akan terhapus secara permanen.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <form action="{{ route('laporan-akhir.destroy', $item->id) }}" method="POST">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger">Hapus</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Modal untuk Mentor (draft, review, tolak bisa dihapus, kecuali terima) --}}
+    @if(Auth::user()->isMentor() && $item->status !== 'terima')
+        <div class="modal fade" id="confirmDeleteModalMentor{{ $item->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-red-600">
+                        <h5 class="modal-title text-white">Konfirmasi Penghapusan</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Apakah Anda yakin ingin menghapus laporan akhir <strong>{{ Str::limit($item->judul_laporan, 30) }}</strong>?</p>
+                        <p class="text-muted">Peserta: {{ $item->peserta->nama_lengkap ?? '-' }}</p>
+                        <p class="text-muted">Status: <span class="badge bg-{{ $item->status === 'tolak' ? 'danger' : ($item->status === 'review' ? 'info' : 'warning') }}">{{ ucfirst($item->status) }}</span></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <form action="{{ route('laporan-akhir.destroy', $item->id) }}" method="POST">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger">Hapus</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Modal untuk Admin (draft, review, tolak bisa dihapus, kecuali terima) --}}
+    @if(Auth::user()->isAdmin() && $item->status !== 'terima')
+        <div class="modal fade" id="confirmDeleteModalAdmin{{ $item->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-red-600">
+                        <h5 class="modal-title text-white">Konfirmasi Penghapusan</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Apakah Anda yakin ingin menghapus laporan akhir <strong>{{ Str::limit($item->judul_laporan, 30) }}</strong>?</p>
+                        <p class="text-muted">Peserta: {{ $item->peserta->nama_lengkap ?? '-' }}</p>
+                        <p class="text-muted">Status: <span class="badge bg-{{ $item->status === 'tolak' ? 'danger' : ($item->status === 'review' ? 'info' : 'warning') }}">{{ ucfirst($item->status) }}</span></p>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>

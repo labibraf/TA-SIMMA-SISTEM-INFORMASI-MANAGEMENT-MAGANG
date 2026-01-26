@@ -24,112 +24,116 @@ class Penugasan extends Model
     ];
 
     protected $casts = [
-        'deadline' => 'date',
+        'deadline' => 'datetime',
     ];
-
     public function peserta()
     {
-        return $this->belongsTo(Peserta::class, 'peserta_id', 'id');
+        return $this->belongsTo(Peserta::class, 'peserta_id');
     }
-
     public function mentor()
     {
-        return $this->belongsTo(Mentor::class, 'mentor_id', 'id');
+        return $this->belongsTo(Mentor::class, 'mentor_id');
     }
 
+    /**
+     * Relasi ke Bagian/Divisi
+     * Foreign Key: bagian_id
+     */
     public function bagian()
     {
-        return $this->belongsTo(Bagian::class, 'bagian_id', 'id');
+        return $this->belongsTo(Bagian::class, 'bagian_id');
     }
 
+    /**
+     * Relasi ke LaporanHarian (One-to-Many)
+     * Satu penugasan bisa memiliki banyak laporan harian
+     */
     public function laporanHarian()
     {
-        return $this->hasMany(LaporanHarian::class, 'penugasan_id', 'id');
+        return $this->hasMany(LaporanHarian::class, 'penugasan_id');
     }
 
-    // Relasi many-to-many dengan Peserta melalui pivot table
-    public function pesertasRelation()
+    /**
+     * Relasi Many-to-Many dengan Peserta (untuk penugasan Divisi)
+     * Pivot table: penugasan_peserta
+     */
+    public function pesertas()
     {
         return $this->belongsToMany(Peserta::class, 'penugasan_peserta', 'penugasan_id', 'peserta_id')
                     ->withTimestamps();
     }
 
-    // Method pesertas() untuk mendapatkan collection peserta yang ditugaskan
-    public function pesertas()
+    /**
+     * Method helper untuk mendapatkan semua peserta yang ditugaskan
+     * (Support kedua kategori: Individu & Divisi)
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getAllPesertas()
     {
-        // Untuk penugasan divisi, return peserta yang sudah di-assign (dari pivot table)
+        // Untuk penugasan Divisi: ambil dari pivot table
         if ($this->kategori === 'Divisi') {
-            // Gunakan property accessor untuk mendapatkan collection
-            return $this->pesertasRelation()->get();
+            return $this->pesertas()->get();
         }
 
-        // Untuk penugasan individu, return peserta yang ditugaskan dalam collection
-        if ($this->kategori === 'Individu' && $this->peserta_id) {
-            return Peserta::where('id', $this->peserta_id)->get();
+        // Untuk penugasan Individu: wrap peserta dalam collection
+        if ($this->kategori === 'Individu' && $this->peserta) {
+            return collect([$this->peserta]);
         }
 
-        // Return empty collection jika tidak ada kondisi yang terpenuhi
+        // Return empty collection jika tidak ada
         return collect();
-    }
-
-    // Accessor untuk Ditugaskan (untuk backward compatibility)
+    }    /**
+     * Accessor untuk mendapatkan nama yang ditugaskan
+     * Digunakan untuk tampilan UI
+     */
     public function getDitugaskanAttribute()
     {
         if ($this->kategori === 'Individu' && $this->peserta) {
             return $this->peserta->user->name;
-        } elseif ($this->kategori === 'Divisi') {
-            if ($this->peserta) {
-                return $this->peserta->user->name;
-            } else {
-                return 'Divisi '. ($this->bagian->nama_bagian ?? 'bagian ini');
-            }
         }
-        return $this->peserta ? $this->peserta->user->name : 'Tidak ada peserta';
+
+        if ($this->kategori === 'Divisi') {
+            return 'Divisi ' . ($this->bagian->nama_bagian ?? 'bagian ini');
+        }
+
+        return 'Tidak ada peserta';
     }
 
-
-
-    // Alias untuk backward compatibility
+    /**
+     * Alias untuk backward compatibility
+     */
     public function laporanHarians()
     {
         return $this->laporanHarian();
     }
 
 
+    /**
+     * Model events untuk update waktu tugas tercapai peserta
+     */
     protected static function booted()
     {
         static::saved(function ($penugasan) {
-            // Update untuk penugasan individu
-            if ($penugasan->peserta && method_exists($penugasan->peserta, 'updateWaktuTugasTercapai')) {
-                $penugasan->peserta->updateWaktuTugasTercapai();
-            }
-
-            // Update untuk penugasan divisi (peserta yang di-assign via pivot table)
-            if ($penugasan->kategori === 'Divisi') {
-                $pesertasAssigned = $penugasan->pesertasRelation;
-                foreach ($pesertasAssigned as $peserta) {
-                    if (method_exists($peserta, 'updateWaktuTugasTercapai')) {
-                        $peserta->updateWaktuTugasTercapai();
-                    }
-                }
-            }
+            $penugasan->updatePesertaWaktuTugas();
         });
 
         static::deleted(function ($penugasan) {
-            // Update untuk penugasan individu
-            if ($penugasan->peserta && method_exists($penugasan->peserta, 'updateWaktuTugasTercapai')) {
-                $penugasan->peserta->updateWaktuTugasTercapai();
-            }
-
-            // Update untuk penugasan divisi (peserta yang di-assign via pivot table)
-            if ($penugasan->kategori === 'Divisi') {
-                $pesertasAssigned = $penugasan->pesertasRelation;
-                foreach ($pesertasAssigned as $peserta) {
-                    if (method_exists($peserta, 'updateWaktuTugasTercapai')) {
-                        $peserta->updateWaktuTugasTercapai();
-                    }
-                }
-            }
+            $penugasan->updatePesertaWaktuTugas();
         });
+    }
+
+    /**
+     * Helper method untuk update waktu tugas tercapai semua peserta terkait
+     */
+    private function updatePesertaWaktuTugas()
+    {
+        $allPesertas = $this->getAllPesertas();
+
+        foreach ($allPesertas as $peserta) {
+            if (method_exists($peserta, 'updateWaktuTugasTercapai')) {
+                $peserta->updateWaktuTugasTercapai();
+            }
+        }
     }
 }

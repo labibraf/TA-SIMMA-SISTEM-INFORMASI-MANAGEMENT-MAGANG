@@ -20,7 +20,6 @@ class Repository extends Model
         'tahun_magang',
         'bagian',
         'kategori',
-        'views',
         'is_published',
         'published_at',
     ];
@@ -28,7 +27,6 @@ class Repository extends Model
     protected $casts = [
         'is_published' => 'boolean',
         'published_at' => 'datetime',
-        'views' => 'integer',
     ];
 
     /**
@@ -105,11 +103,6 @@ class Repository extends Model
     public function scopeSistem($query)
     {
         return $query->whereNotNull('laporan_akhir_id');
-    }
-
-    public function incrementViews()
-    {
-        $this->increment('views');
     }
 
     public function publish()

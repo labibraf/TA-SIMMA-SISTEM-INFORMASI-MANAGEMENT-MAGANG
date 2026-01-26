@@ -30,8 +30,8 @@
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
                                     <td>{{ $bagian->nama_bagian }}</td>
-                                    <td class="text-center">{{ $bagian->peserta_count }}</td>
-                                    <td class="text-center">{{ $bagian->mentor_count }}</td>
+                                    <td class="text-center">{{ $bagian->pesertas_count }}</td>
+                                    <td class="text-center">{{ $bagian->mentors_count }}</td>
                                     <td class="text-center">
                                         <div class="btn-group" role="group">
                                             <a href="{{ route('bagian.show', $bagian->id) }}"
@@ -60,16 +60,16 @@
                     <div class="modal fade" id="confirmDeleteModal{{ $bagian->id }}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
                         <div class="modal-dialog">
                             <div class="modal-content">
-                                <div class="modal-header bg-danger text-white">
-                                    <h5 class="modal-title" id="exampleModalLabel">Konfirmasi Penghapusan</h5>
+                                <div class="modal-header bg-red-500">
+                                    <h5 class="modal-title text-white" id="exampleModalLabel">Konfirmasi Penghapusan</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
                                     <p>Apakah Anda yakin ingin menghapus bagian <strong>{{ $bagian->nama_bagian }}</strong>?</p>
                                     <p class="text-muted">Data akan terhapus secara permanen dan tidak dapat dikembalikan.</p>
-                                    @if($bagian->peserta_count > 0 || $bagian->mentor_count > 0)
-                                        <div class="alert alert-warning">
-                                            <strong>Peringatan:</strong> Bagian ini masih memiliki {{ $bagian->peserta_count }} peserta dan {{ $bagian->mentor_count }} mentor yang terkait.
+                                    @if($bagian->pesertas_count > 0 || $bagian->mentors_count > 0)
+                                        <div class="alert alert-warning mb-2">
+                                            <strong>Peringatan:</strong> Bagian ini masih memiliki {{ $bagian->pesertas_count }} peserta dan {{ $bagian->mentors_count }} mentor yang terkait.
                                         </div>
                                     @endif
                                 </div>

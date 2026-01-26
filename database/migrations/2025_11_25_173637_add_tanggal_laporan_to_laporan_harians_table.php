@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('laporan_akhirs', function (Blueprint $table) {
-            $table->text('catatan_mentor')->nullable()->after('status');
+        Schema::table('laporan_harians', function (Blueprint $table) {
+            $table->date('tanggal_laporan')->nullable()->after('penugasan_id');
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('laporan_akhirs', function (Blueprint $table) {
-            $table->dropColumn('catatan_mentor');
+        Schema::table('laporan_harians', function (Blueprint $table) {
+            $table->dropColumn('tanggal_laporan');
         });
     }
 };

@@ -50,29 +50,34 @@
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-end mb-4">
               <h3 class="mb-0"><b>Login</b></h3>
-              <a href="{{ route('register') }}" class="link-primary">Don't have an account?</a>
             </div>
+
+            @if(session('error') || $errors->any())
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+              <strong>Error!</strong>
+              @if(session('error'))
+                {{ session('error') }}
+              @elseif($errors->has('email'))
+                {{ $errors->first('email') }}
+              @else
+                {{ $errors->first() }}
+              @endif
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            @endif
+
             <form action="{{ route('login') }}" method="POST">
             @csrf
             <div class="form-group mb-3">
               <label class="form-label">Email Address</label>
-              <input type="email" class="form-control" placeholder="Email Address" class="form-control @error('email') is-invalid @enderror" name="email"  required autocomplete="off" autofocus>
-              @error('email')
-                  <small class="text-danger">{{ $message }}></small>
-              @enderror
+              <input type="email" class="form-control" placeholder="Email Address" name="email" value="{{ old('email') }}" required autocomplete="off" autofocus>
             </div>
             <div class="form-group mb-3">
               <label class="form-label">Password</label>
-              <input type="password" class="form-control" placeholder="Password" class="form-control @error('password') is-invalid @enderror" name="password" required autocomplete="off">
-             @error('password')
-                  <small class="text-danger">{{ $message }}></small>
-             @enderror
+              <input type="password" class="form-control" placeholder="Password" name="password" required autocomplete="off">
             </div>
             <div class="d-grid mt-4">
               <button type="submit" class="btn btn-primary">Login</button>
-            </div>
-            <div class="saprator mt-3">
-              <span>Login with</span>
             </div>
           </div>
         </div>

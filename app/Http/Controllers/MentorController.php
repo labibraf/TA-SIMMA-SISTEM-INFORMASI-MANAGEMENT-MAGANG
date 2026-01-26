@@ -115,7 +115,7 @@ class MentorController extends Controller
 
     public function show(String $id)
     {
-        $mentor = Mentor::with(['bagian', 'user', 'peserta.bagian'])->findOrFail($id);
+        $mentor = Mentor::with(['bagian', 'user', 'pesertas.bagian'])->findOrFail($id);
         return view('mentor.show', compact('mentor'));
     }
 

@@ -89,8 +89,8 @@
                     <div class="modal fade" id="confirmDeleteModal{{ $item->id }}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
                         <div class="modal-dialog">
                             <div class="modal-content">
-                                <div class="modal-header bg-danger text-white">
-                                    <h5 class="modal-title" id="exampleModalLabel">Konfirmasi Penghapusan</h5>
+                                <div class="modal-header bg-red-600 text-white">
+                                    <h5 class="modal-title text-white" id="exampleModalLabel">Konfirmasi Penghapusan</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">

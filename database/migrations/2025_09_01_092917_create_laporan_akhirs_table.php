@@ -14,8 +14,11 @@ return new class extends Migration
             $table->foreignId('mentor_id')->constrained('mentors')->cascadeOnDelete();
             $table->string('judul_laporan');
             $table->text('deskripsi_laporan');
-            $table->string('file_path')->nullable();
+            $table->string('file_path'); // Wajib diisi, tidak nullable
             $table->enum('status', ['draft', 'review', 'terima', 'tolak'])->default('draft');
+            $table->text('catatan_mentor')->nullable();
+            $table->string('kategori_repository')->nullable();
+            $table->text('deskripsi_repository')->nullable();
             $table->timestamps();
         });
     }

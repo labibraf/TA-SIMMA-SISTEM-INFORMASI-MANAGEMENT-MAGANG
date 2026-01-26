@@ -52,27 +52,27 @@
                                     <td>{{ $user->email }}</td>
                                     <td>
                                         @if($user->role && $user->isMentor())
-                                            <span class="badge bg-danger user-badge">
-                                                <i class="ti ti-user-star me-1"></i>{{ $user->role->role_name }}
+                                            <span class="badge bg-indigo-400 text-white user-badge">
+                                                <i class=""></i>{{ $user->role->role_name }}
                                             </span>
                                         @elseif($user->role && $user->isPeserta())
-                                            <span class="badge bg-primary user-badge">
-                                                <i class="ti ti-user me-1"></i>{{ $user->role->role_name }}
+                                            <span class="badge bg-blue-400 user-badge">
+                                                <i class=""></i>{{ $user->role->role_name }}
                                             </span>
                                         @elseif($user->role && $user->isAdmin())
-                                            <span class="badge bg-success user-badge">
-                                                <i class="ti ti-shield-check me-1"></i>{{ $user->role->role_name }}
+                                            <span class="badge bg-orange-400 user-badge">
+                                                <i class=""></i>{{ $user->role->role_name }}
                                             </span>
                                         @else
                                             <span class="badge bg-secondary user-badge">
-                                                <i class="ti ti-alert-circle me-1"></i>Belum ada role
+                                                <i class=""></i>Belum ada role
                                             </span>
                                         @endif
                                     </td>
                                     <td class="text-center">
                                         @php $deptInfo = $user->departemen_info; @endphp
                                         <span class="badge bg-{{ $deptInfo['color'] }} dept-badge text-white">
-                                            <i class="{{ $deptInfo['icon'] }} me-1"></i>{{ $deptInfo['bagian'] }}
+                                            <i class=""></i>{{ $deptInfo['bagian'] }}
                                         </span>
                                     </td>
                                     <td>{{ $user->created_at->format('d M Y') }}</td>
@@ -100,7 +100,7 @@
                     <div class="modal fade" id="roleModal{{ $user->id }}" tabindex="-1" aria-labelledby="roleModalLabel" aria-hidden="true">
                         <div class="modal-dialog">
                             <div class="modal-content">
-                                <div class="modal-header bg-success text-white">
+                                <div class="modal-header bg-green-200">
                                     <h5 class="modal-title" id="roleModalLabel">
                                         <i class="ti ti-user-cog"></i> Ganti Role User
                                     </h5>
@@ -112,7 +112,8 @@
                                         <strong class="fs-5">{{ $user->name }}</strong>
                                         <p class="text-muted mb-0">{{ $user->email }}</p>
                                         @if($user->role)
-                                            <p class="text-info">Role saat ini: <strong>{{ $user->role->role_name }}</strong></p>
+                                        <hr>
+                                            <p class="text-green-700 mt-2">Role saat ini: <strong class="bg-green-100 px-2 py-1 rounded">{{ $user->role->role_name }}</strong></p>
                                         @endif
                                     </div>
 

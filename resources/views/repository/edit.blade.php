@@ -255,13 +255,7 @@
                                 <hr>
                             </h6>
                             <div class="row">
-                                <div class="col-md-6">
-                                    <p class="mb-1">
-                                        <i class="fas fa-eye me-1"></i>
-                                        <strong>Total Views:</strong> {{ number_format($repository->views) }}
-                                    </p>
-                                </div>
-                                <div class="col-md-6">
+                                <div class="col-md-12">
                                     <p class="mb-0">
                                         <i class="fas fa-calendar me-1"></i>
                                         <strong>Terakhir Update:</strong> {{ $repository->updated_at->format('d M Y H:i') }}

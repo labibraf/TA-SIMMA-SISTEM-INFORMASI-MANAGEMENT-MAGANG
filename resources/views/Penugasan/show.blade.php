@@ -145,7 +145,12 @@
                             <div class="mb-3">
                                 <label class="fw-bold">Status Progress:</label>
                                 <div class="mt-1">
-                                    @if(isset($currentProgress) && $currentProgress == 100)
+                                    @if($isGugur)
+                                        <span class="badge bg-danger">
+                                            <i class="ti ti-alarm me-1"></i>Telat/Gugur (Lewat Deadline)
+                                        </span>
+                                        <span class="badge bg-dark">Tidak Terhitung</span>
+                                    @elseif($isSelesaiBetulan)
                                         <span class="badge bg-success">Selesai</span>
                                     @elseif(isset($currentProgress) && $currentProgress > 0)
                                         <span class="badge bg-warning text-dark">Dikerjakan</span>
@@ -211,13 +216,13 @@
                                 <span class="fw-bold">{{ number_format($currentProgress, 1) }}%</span>
                             </div>
                             @if(isset($latestLaporan))
-                                <div class="small text-muted">
+                                <div class="text-muted">
                                     @if($penugasan->kategori === 'Divisi')
                                         <i class="fas fa-info-circle"></i> Rata-rata progress dari progress tertinggi setiap peserta
                                         <br>Terakhir diupdate: {{ $latestLaporan->created_at->format('d M Y H:i') }}
                                     @else
-                                        <i class="fas fa-clock"></i> Progress tertinggi dari laporan harian
-                                        <br>Terakhir diupdate: {{ $latestLaporan->created_at->format('d M Y H:i') }}
+                                        <i class="fas fa-clock"></i> data progress tertinggi dari laporan harian /
+                                        <br class="d-block d-md-none">Terakhir diupdate: {{ $latestLaporan->created_at->format('d M Y H:i') }}
                                     @endif
                                 </div>
                             @endif
@@ -310,7 +315,7 @@
                                 <i class="fas fa-exclamation-triangle me-2"></i>
                                 {{ $penugasan->catatan }}
                             </div>
-                            <small class="text-muted">Silakan lakukan perbaikan sesuai catatan di atas sebelum tugas dapat di-approve.</small>
+                            <span class="text-muted">Silakan lakukan perbaikan sesuai catatan di atas sebelum tugas dapat di-approve.</span>
                         </div>
                         @endif
 
@@ -344,17 +349,24 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">LOG Laporan Harian Pengerjaan Tugas</h5>
             @auth
-                @if(Auth::user()->isPeserta() && $penugasan->is_approved != 1)
-                <div class="d-flex gap-2">
-                    <a href="{{ route('laporan_harian.create', $penugasan->id) }}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-plus"></i> Tambah Laporan Harian
-                    </a>
-                </div>
-                @elseif(Auth::user()->isPeserta() && $penugasan->is_approved == 1)
-                <div class="alert alert-success alert-sm d-inline-block mb-0 px-3 py-2">
-                    <i class="fas fa-check-circle"></i>
-                    <strong>Tugas telah di-approve.</strong> Tidak dapat menambah laporan lagi.
-                </div>
+                @if(Auth::user()->isPeserta())
+                    @if($isGugur)
+                        <div class="alert alert-danger alert-sm d-inline-block mb-0 px-3 py-2">
+                            <i class="ti ti-alarm"></i>
+                            <strong>Tugas Telat/Gugur!</strong> Sudah melewati deadline. Tidak terhitung ke target waktu.
+                        </div>
+                    @elseif($penugasan->is_approved == 1)
+                        <div class="alert alert-success alert-sm d-inline-block mb-0 px-3 py-2">
+                            <i class="fas fa-check-circle"></i>
+                            <strong>Tugas telah di-approve.</strong> Tidak dapat menambah laporan lagi.
+                        </div>
+                    @else
+                        <div class="d-flex gap-2">
+                            <a href="{{ route('laporan_harian.create', $penugasan->id) }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus"></i> Tambah Laporan Harian
+                            </a>
+                        </div>
+                    @endif
                 @endif
             @endauth
         </div>
@@ -376,16 +388,17 @@
                                 <th>Deskripsi Kegiatan</th>
                                 <th>Progress</th>
                                 <th>File</th>
-                                @unless(Auth::user()->isPeserta())
-                                <th>Opsi</th>
-                                @endunless
+                                <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($laporanHarians as $index => $laporan)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
-                                    <td>{{ $laporan->created_at->format('d M Y') }}</td>
+                                    <td>
+                                        {{ $laporan->created_at->format('d M Y') }}
+                                        <br><small class="text-muted">{{ $laporan->created_at->format('H:i') }} WIB</small>
+                                    </td>
                                     @if($penugasan->kategori == 'Divisi')
                                     <td>{{ $laporan->peserta->user->name ?? '-' }}</td>
                                     @endif
@@ -415,15 +428,53 @@
                                             <span class="badge bg-secondary">-</span>
                                         @endif
                                     </td>
-                                    @unless(Auth::user()->isPeserta())
                                     <td class="text-center">
-                                        <button type="button"
-                                                class="btn btn-danger btn-sm"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#hapusLaporanModal{{ $laporan->id }}"
-                                                title="Hapus Laporan">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                        @if(Auth::user()->isPeserta())
+                                            {{-- Tombol Edit dan Hapus untuk Peserta --}}
+                                            @if($isGugur)
+                                                <span class="badge bg-danger" title="Tugas telat/gugur, tidak dapat diubah">
+                                                    <i class="ti ti-alarm me-1"></i>Telat/Gugur
+                                                </span>
+                                            @elseif($penugasan->is_approved == 1)
+                                                <span class="badge bg-success" title="Tugas sudah di-approve">
+                                                    <i class="ti ti-lock me-1"></i>Terkunci
+                                                </span>
+                                            @else
+                                                <div class="btn-group" role="group">
+                                                    <a href="{{ route('laporan_harian.edit', $laporan->id) }}"
+                                                       class="btn btn-warning btn-sm"
+                                                       title="Edit Laporan">
+                                                        <i class="ti ti-edit"></i>
+                                                    </a>
+                                                    <button type="button"
+                                                            class="btn btn-danger btn-sm"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#hapusLaporanModal{{ $laporan->id }}"
+                                                            title="Hapus Laporan">
+                                                        <i class="ti ti-trash"></i>
+                                                    </button>
+                                                </div>
+                                            @endif
+                                        @else
+                                            {{-- Tombol Edit/Hapus untuk Admin/Mentor --}}
+                                            @if($isGugur)
+                                                <span class="badge bg-danger" title="Tugas telat/gugur, tidak dapat diubah">
+                                                    <i class="ti ti-alarm me-1"></i>Telat/Gugur
+                                                </span>
+                                            @elseif($penugasan->is_approved == 1)
+                                                <span class="badge bg-success" title="Tugas sudah di-approve, data terkunci">
+                                                    <i class="ti ti-lock me-1"></i>Terkunci
+                                                </span>
+                                            @else
+                                                <button type="button"
+                                                        class="btn btn-danger btn-sm"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#hapusLaporanModal{{ $laporan->id }}"
+                                                        title="Hapus Laporan">
+                                                    <i class="ti ti-trash"></i>
+                                                </button>
+                                            @endif
+                                        @endif
 
                                         <!-- Modal Konfirmasi Hapus -->
                                         <div class="modal fade" id="hapusLaporanModal{{ $laporan->id }}" tabindex="-1">
@@ -449,7 +500,6 @@
                                             </div>
                                         </div>
                                     </td>
-                                    @endunless
                                 </tr>
                             @endforeach
                         </tbody>

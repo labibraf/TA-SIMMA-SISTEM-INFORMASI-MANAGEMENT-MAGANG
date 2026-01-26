@@ -16,6 +16,8 @@ class LaporanAkhir extends Model
         'file_path',
         'status',
         'catatan_mentor',
+        'kategori_repository',
+        'deskripsi_repository',
     ];
 
     public function peserta()
@@ -25,5 +27,10 @@ class LaporanAkhir extends Model
     public function mentor()
     {
         return $this->belongsTo(Mentor::class);
+    }
+
+    public function repository()
+    {
+        return $this->hasOne(Repository::class);
     }
 }

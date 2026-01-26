@@ -6,14 +6,40 @@
     .card-grad-primary { background: linear-gradient(135deg, #5c92fe 0%, #825ee4 100%); }
     .card-grad-warning { background: linear-gradient(135deg, #ffc107 0%, #ff8b67 100%); }
     .card-grad-info    { background: linear-gradient(135deg, #20a6e7 0%, #4facfe 100%); }
+    .card-template1  { background:#DAA588 ; }
+    .card-template2  { background:#C46D5E ; }
+    .card-template3  { background:#F56960 ; }
+    .card-template4  { background:#87A878 ; }
 </style>
 
 <div class="">
+    {{-- Header Section --}}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm bg-blue-500 text-white">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-2 text-white">
+                                <i class="ti ti-dashboard me-2"></i>Dashboard Peserta
+                            </h2>
+                            <p class="mb-0 mt-2 opacity-80">Monitoring & Statistik Kegiatan Magang - <strong>{{ $peserta->bagian->nama_bagian ?? '-' }}</strong></p>
+                        </div>
+                        <div>
+                            <span class="badge rounded-pill bg-white text-primary fs-5 px-4 py-2">
+                                <i class="ti ti-calendar me-2"></i>{{ now()->format('d M Y') }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- PRIORITAS 1: Kartu Statistik Utama (At-a-Glance Cards) -->
     <div class="row">
         <!-- Kartu 1: Progres Magang -->
         <div class="col-md-3 col-sm-6">
-            <div class="card card-grad-success text-white">
+            <div class="card card-template1 text-white">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
@@ -33,7 +59,7 @@
                         </div>
                     </div>
                     <p class="mb-0 mt-2 text-white-50">
-                        <i class="ti ti-calendar me-1"></i>{{ $sisaWaktu }}
+                        <i class="ti ti-calendar me-1"></i> Tersisah {{ $sisaWaktu }}
                     </p>
                 </div>
             </div>
@@ -41,27 +67,27 @@
 
         <!-- Kartu 2: Total Jam Tercapai -->
         <div class="col-md-3 col-sm-6">
-            <div class="card card-grad-primary text-white">
+            <div class="card card-template2 text-white">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <h3 class="text-white m-0 mb-1">{{ number_format($totalJamTercapai, 1) }}</h3>
-                            <p class="mb-0 text-white-50">Jam Minimal Tercapai</p>
+                            <p class="mb-0 text-white-50">Total Jam Tercapai</p>
                         </div>
                         <div class="avtar avtar-xl bg-white bg-opacity-25">
-                            <i class="ti ti-clock-hour-4 fs-3"></i>
+                            <i class="ti ti-clock fs-1"></i>
                         </div>
                     </div>
                     <div class="mt-3">
                         <p class="mb-0 text-white">
-                            <span class="fw-semibold">Target: {{ number_format($targetJam, 1) }} jam</span>
+                            <span class="fw-semibold">Target Minimal: {{ number_format($targetJam, 1) }} jam</span>
                         </p>
                         @php
                             $selisihJam = $targetJam - $totalJamTercapai;
                         @endphp
                         <p class="mb-0 text-white-50 mt-1">
                             @if($selisihJam > 0)
-                                <i class="ti ti-arrow-up-right me-1"></i>Sisa {{ number_format($selisihJam, 1) }} jam lagi
+                                <i class="ti ti-arrow-up-right me-1"></i>Kurang {{ number_format($selisihJam, 1) }} jam lagi
                             @else
                                 <i class="ti ti-check me-1"></i>Target tercapai !
                             @endif
@@ -73,24 +99,33 @@
 
         <!-- Kartu 3: Tugas Aktif -->
         <div class="col-md-3 col-sm-6">
-            <div class="card card-grad-warning text-white">
+            <div class="card card-template3 text-white">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <h3 class="text-white m-0 mb-1">{{ $tugasAktif }}</h3>
-                            <p class="mb-0 text-white-50">Tugas Aktif</p>
+                            <p class="mb-0 text-white-50">Tugas Tersedia</p>
                         </div>
                         <div class="avtar avtar-xl bg-white bg-opacity-25">
-                            <i class="ti ti-clipboard-check fs-3"></i>
+                            <i class="ti ti-clipboard-check fs-1"></i>
                         </div>
                     </div>
                     <div class="mt-3">
-                        <p class="mb-0 text-white">
-                            <span class="fw-semibold">Perlu perhatian Anda</span>
-                        </p>
-                        <p class="mb-0 text-white-50 mt-1">
-                            <i class="ti ti-alert-circle me-1"></i>Segera selesaikan tugas Anda
-                        </p>
+                        @if($tugasAktif > 0)
+                            <p class="mb-0 text-white">
+                                <span class="fw-semibold">{{ $tugasAktif }} tugas perlu dikerjakan</span>
+                            </p>
+                            <p class="mb-0 text-white-50 mt-1">
+                                <i class="ti ti-alert-circle me-1"></i>Belum dimulai / sedang dikerjakan
+                            </p>
+                        @else
+                            <p class="mb-0 text-white">
+                                <span class="fw-semibold">Semua tugas selesai!</span>
+                            </p>
+                            <p class="mb-0 text-white-50 mt-1">
+                                <i class="ti ti-check me-1"></i>Tidak ada tugas yang tersisa
+                            </p>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -98,22 +133,22 @@
 
         <!-- Kartu 4: Status Laporan Akhir -->
         <div class="col-md-3 col-sm-6">
-            <div class="card card-grad-info text-white">
+            <div class="card card-template4 text-white">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <h6 class="text-white m-0 mb-3">Laporan Akhir</h6>
-                            <span class="badge {{ $badgeClass }} fs-5 px-3 py-1.5">
+                            <span class="badge {{ $badgeClass }} fs-5 px-3 py-1.5 rounded-pill">
                                 {{ $statusLaporanAkhir }}
                             </span>
                         </div>
                         <div class="avtar avtar-xl bg-white bg-opacity-25">
-                            <i class="ti ti-file-text fs-3"></i>
+                            <i class="ti ti-file-text fs-1"></i>
                         </div>
                     </div>
-                    <div class="mt-4">
+                    <div class="mt-4 rounded-pill">
                         @if($statusLaporanAkhir === 'Belum Mengajukan')
-                            <a href="{{ route('laporan-akhir.create') }}" class="btn btn-outline-light d-inline-flex">
+                            <a href="{{ route('laporan-akhir.create') }}" class="btn btn-outline-light d-inline-flex ">
                                 <i class="ti ti-plus me-1"></i>Ajukan Sekarang
                             </a>
                         @elseif($statusLaporanAkhir === 'Perlu Revisi')
@@ -213,7 +248,9 @@
                     <h5 class="mb-0">
                         <i class="ti ti-list-check me-2"></i>Tugas Anda
                     </h5>
-                    <span class="badge bg-primary">{{ $tugasSaya->count() }} Total Tugas</span>
+                    <a href="{{ route('penugasans.index') }}" class="btn btn-primary">
+                        Lihat Semua Tugas
+                    </a>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -255,26 +292,32 @@
                                             {{ \Carbon\Carbon::parse($tugas->deadline)->format('d M Y') }}
                                         </small>
                                         @php
+                                            // Hitung hari tersisa untuk badge "Segera!"
                                             $deadline = \Carbon\Carbon::parse($tugas->deadline);
-                                            $hariTersisa = now()->diffInDays($deadline, false);
                                         @endphp
-                                        @if($hariTersisa < 0 && $tugas->status_tugas !== 'Selesai')
-                                            <br><span class="badge bg-danger badge-sm">Terlambat</span>
-                                        @elseif($hariTersisa <= 3 && $tugas->status_tugas !== 'Selesai')
-                                            <br><span class="badge bg-warning badge-sm">Segera!</span>
+                                        @if($tugas->isGugur)
+                                            <br><span class="badge bg-danger badge-sm">
+                                                <i class="ti ti-alarm me-1"></i>Terlambat
+                                            </span>
+                                        @elseif($tugas->is_approved != 1)
+                                            <br><span class="badge bg-warning badge-sm">
+                                                <i class="ti ti-clock me-1"></i>Segera!
+                                            </span>
                                         @endif
                                     </td>
                                     <td>
-                                        @if($tugas->status_tugas === 'Selesai')
-                                            @if($tugas->is_approved)
-                                                <span class="badge bg-success">
-                                                    <i class="ti ti-check me-1"></i>Selesai
-                                                </span>
-                                            @else
-                                                <span class="badge bg-warning">
-                                                    <i class="ti ti-clock me-1"></i>Review
-                                                </span>
-                                            @endif
+                                        @if($tugas->isGugur)
+                                            <span class="badge bg-danger">
+                                                <i class="ti ti-alarm me-1"></i>Telat/Gugur
+                                            </span>
+                                        @elseif($tugas->is_approved == 1)
+                                            <span class="badge bg-success">
+                                                <i class="ti ti-check me-1"></i>Selesai
+                                            </span>
+                                        @elseif($tugas->status_tugas === 'Selesai')
+                                            <span class="badge bg-warning">
+                                                <i class="ti ti-clock me-1"></i>Review
+                                            </span>
                                         @elseif($tugas->status_tugas === 'Dikerjakan')
                                             <span class="badge bg-info">
                                                 <i class="ti ti-progress me-1"></i>Dikerjakan
@@ -311,7 +354,7 @@
     <!-- PRIORITAS 2: Visualisasi Data (Charts) -->
     <div class="row mt-4">
         <!-- Chart 1: Distribusi Beban Kerja -->
-        <div class="col-md-6">
+        <div class="col-xl-4 col-md-12">
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">
@@ -322,23 +365,30 @@
                 <div class="card-body">
                     <div id="chart-distribusi-beban-kerja"></div>
                     <div class="row mt-3 text-center">
-                        <div class="col-4">
+                        <div class="col-3">
                             <div class="p-2">
                                 <i class="ti ti-circle-filled text-success"></i>
                                 <h6 class="mb-0 mt-1">{{ $tugasSelesai }}</h6>
                                 <small class="text-muted">Selesai</small>
                             </div>
                         </div>
-                        <div class="col-4">
+                        <div class="col-3">
                             <div class="p-2">
                                 <i class="ti ti-circle-filled text-warning"></i>
                                 <h6 class="mb-0 mt-1">{{ $tugasDikerjakan }}</h6>
                                 <small class="text-muted">Dikerjakan</small>
                             </div>
                         </div>
-                        <div class="col-4">
+                        <div class="col-3">
                             <div class="p-2">
                                 <i class="ti ti-circle-filled text-danger"></i>
+                                <h6 class="mb-0 mt-1">{{ $tugasTerlambat }}</h6>
+                                <small class="text-muted">Terlambat</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="p-2">
+                                <i class="ti ti-circle-filled text-primary"></i>
                                 <h6 class="mb-0 mt-1">{{ $tugasBelumDimulai }}</h6>
                                 <small class="text-muted">Belum Dimulai</small>
                             </div>
@@ -348,33 +398,92 @@
             </div>
         </div>
 
-        <!-- Chart 2: Tren Aktivitas Harian -->
-        <div class="col-md-6">
+        <!-- Riwayat Tugas Selesai -->
+        <div class="col-xl-8 col-md-12">
             <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="ti ti-chart-line me-2"></i>Tren Aktivitas Harian
-                    </h5>
-                    <p class="text-muted small mb-0">Laporan harian Anda dalam 14 hari terakhir</p>
-                </div>
-                <div class="card-body">
-                    <div id="chart-tren-aktivitas"></div>
-                    @php
-                        $totalLaporan14Hari = array_sum($trendAktivitas);
-                        $rataRataLaporan = $totalLaporan14Hari > 0 ? round($totalLaporan14Hari / 14, 1) : 0;
-                    @endphp
-                    <div class="row mt-3 text-center">
-                        <div class="col-6">
-                            <div class="p-2">
-                                <h6 class="mb-0 text-primary">{{ $totalLaporan14Hari }}</h6>
-                                <small class="text-muted">Total Laporan (14 Hari)</small>
-                            </div>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">
+                                <i class="ti ti-checkbox me-2"></i>Riwayat Tugas Selesai
+                            </h5>
+                            <p class="text-muted small mb-0">Tugas yang telah Anda selesaikan</p>
                         </div>
-                        <div class="col-6">
-                            <div class="p-2">
-                                <h6 class="mb-0 text-info">{{ $rataRataLaporan }}</h6>
-                                <small class="text-muted">Rata-rata per Hari</small>
-                            </div>
+                        <a href="{{ route('penugasans.index') }}" class="btn btn-sm btn-outline-primary">
+                            <i class="ti ti-list me-1"></i>Lihat Semua
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Judul Tugas</th>
+                                        <th>Kategori</th>
+                                        <th>Beban Waktu</th>
+                                        <th>Tanggal Selesai</th>
+                                        <th>Feedback</th>
+                                        <th class="text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($riwayatTugasSelesai as $tugas)
+                                    <tr>
+                                        <td>
+                                            <div>
+                                                <div class="fw-semibold">{{ Str::limit($tugas->judul_tugas, 35) }}</div>
+                                                <small class="text-muted">
+                                                    <i class="ti ti-user me-1"></i>{{ $tugas->mentor->nama_mentor ?? 'N/A' }}
+                                                </small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            @if($tugas->kategori === 'Individu')
+                                                <span class="badge bg-light-primary">
+                                                    <i class="ti ti-user me-1"></i>Individu
+                                                </span>
+                                            @else
+                                                <span class="badge bg-light-info">
+                                                    <i class="ti ti-users me-1"></i>Divisi
+                                                </span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light-success">
+                                                <i class="ti ti-clock-hour-4 me-1"></i>{{ $tugas->beban_waktu }} jam
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                {{ \Carbon\Carbon::parse($tugas->updated_at)->format('d M Y') }}
+                                            </small>
+                                        </td>
+                                        <td>
+                                            @if($tugas->feedback)
+                                                <span class="badge bg-info">
+                                                    <i class="ti ti-message-circle me-1"></i>Ada Feedback
+                                                </span>
+                                            @else
+                                                <span class="text-muted small">-</span>
+                                            @endif
+                                        </td>
+                                        <td class="text-center">
+                                            <a href="{{ route('penugasans.show', $tugas->id) }}"
+                                            class="btn btn-sm btn-outline-primary">
+                                                <i class="ti ti-eye me-1"></i>Detail
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="6" class="text-center py-5">
+                                            <i class="ti ti-clipboard-off fs-1 text-muted d-block mb-2"></i>
+                                            <p class="text-muted mb-0">Belum ada tugas yang diselesaikan</p>
+                                            <small class="text-muted">Selesaikan tugas pertama Anda untuk memulai portofolio</small>
+                                        </td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -382,16 +491,16 @@
         </div>
     </div>
 
-    <!-- PRIORITAS 2: Tabel Log Laporan Harian Terbaru -->
+    <!-- Tabel Log Laporan Harian Terbaru -->
     <div class="row mt-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <div>
                         <h5 class="mb-0">
-                            <i class="ti ti-file-text me-2"></i>Log Laporan Harian Terbaru
+                            <i class="ti ti-file-text me-2"></i>Catatan Harian Terbaru
                         </h5>
-                        <p class="text-muted small mb-0">7 entri terakhir dari aktivitas Anda</p>
+                        <p class="text-muted small mb-0">7 data terakhir dari aktivitas Anda</p>
                     </div>
                     <a href="{{ route('laporan_harian.index') }}" class="btn btn-sm btn-outline-primary">
                         <i class="ti ti-list me-1"></i>Lihat Semua
@@ -462,7 +571,7 @@
                                         @endphp
                                         @if($isValidated)
                                             <span class="badge bg-success">
-                                                <i class="ti ti-circle-check me-1"></i>Tervalidasi
+                                                <i class="ti ti-circle-check me-1"></i>Selesai
                                             </span>
                                         @else
                                             <span class="badge bg-warning">
@@ -495,133 +604,6 @@
             </div>
         </div>
     </div>
-
-    <!-- PRIORITAS 3: Riwayat & Informasi Tambahan -->
-    <div class="row mt-4">
-        <!-- Riwayat Tugas Selesai -->
-        <div class="col-xl-8 col-md-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="mb-0">
-                            <i class="ti ti-checkbox me-2"></i>Riwayat Tugas Selesai
-                        </h5>
-                        <p class="text-muted small mb-0">Portofolio tugas yang telah Anda selesaikan</p>
-                    </div>
-                    <span class="badge bg-success">{{ $riwayatTugasSelesai->count() }} Tugas</span>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Judul Tugas</th>
-                                    <th>Kategori</th>
-                                    <th>Beban Waktu</th>
-                                    <th>Tanggal Selesai</th>
-                                    <th>Feedback</th>
-                                    <th class="text-center">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($riwayatTugasSelesai as $tugas)
-                                <tr>
-                                    <td>
-                                        <div>
-                                            <div class="fw-semibold">{{ Str::limit($tugas->judul_tugas, 35) }}</div>
-                                            <small class="text-muted">
-                                                <i class="ti ti-user me-1"></i>{{ $tugas->mentor->nama_mentor ?? 'N/A' }}
-                                            </small>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        @if($tugas->kategori === 'Individu')
-                                            <span class="badge bg-light-primary">
-                                                <i class="ti ti-user me-1"></i>Individu
-                                            </span>
-                                        @else
-                                            <span class="badge bg-light-info">
-                                                <i class="ti ti-users me-1"></i>Divisi
-                                            </span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-light-success">
-                                            <i class="ti ti-clock-hour-4 me-1"></i>{{ $tugas->beban_waktu }} jam
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <small class="text-muted">
-                                            {{ \Carbon\Carbon::parse($tugas->updated_at)->format('d M Y') }}
-                                        </small>
-                                    </td>
-                                    <td>
-                                        @if($tugas->feedback)
-                                            <span class="badge bg-info">
-                                                <i class="ti ti-message-circle me-1"></i>Ada Feedback
-                                            </span>
-                                        @else
-                                            <span class="text-muted small">-</span>
-                                        @endif
-                                    </td>
-                                    <td class="text-center">
-                                        <a href="{{ route('penugasans.show', $tugas->id) }}"
-                                           class="btn btn-sm btn-outline-primary">
-                                            <i class="ti ti-eye me-1"></i>Detail
-                                        </a>
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="6" class="text-center py-5">
-                                        <i class="ti ti-clipboard-off fs-1 text-muted d-block mb-2"></i>
-                                        <p class="text-muted mb-0">Belum ada tugas yang diselesaikan</p>
-                                        <small class="text-muted">Selesaikan tugas pertama Anda untuk memulai portofolio</small>
-                                    </td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Area Notifikasi/Pengumuman -->
-        <div class="col-xl-4 col-md-12">
-            <!-- Motivasi Card -->
-            <div class="card">
-                <div class="card-body text-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                    <i class="ti ti-rocket fs-1 mb-3 d-block"></i>
-                    <h5 class="text-white mb-2">Terus Semangat!</h5>
-                    <p class="mb-3 text-white-50 small">
-                        @php
-                            $motivasiTexts = [
-                                'Setiap progres kecil adalah langkah menuju kesuksesan besar.',
-                                'Kerja keras Anda hari ini adalah investasi untuk masa depan.',
-                                'Jangan pernah menyerah, kesuksesan ada di depan mata!',
-                                'Kegagalan adalah kesempatan untuk memulai lagi dengan lebih cerdas.',
-                                'Konsistensi adalah kunci dari pencapaian yang luar biasa.'
-                            ];
-                            $randomMotivasi = $motivasiTexts[array_rand($motivasiTexts)];
-                        @endphp
-                        "{{ $randomMotivasi }}"
-                    </p>
-                    <div class="row text-center">
-                        <div class="col-6">
-                            <h4 class="text-white mb-0">{{ number_format($progressPercentage, 0) }}%</h4>
-                            <small class="text-white-50">Progress</small>
-                        </div>
-                        <div class="col-6">
-                            <h4 class="text-white mb-0">{{ $sisaWaktu }}</h4>
-                            <small class="text-white-50">Tersisa</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 @push('styles')
 <style>
@@ -692,14 +674,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ========== CHART 1: Distribusi Beban Kerja (Donut Chart) ==========
     const distribusiBebanKerjaOptions = {
-        series: [{{ $tugasSelesai }}, {{ $tugasDikerjakan }}, {{ $tugasBelumDimulai }}],
+        series: [{{ $tugasSelesai }}, {{ $tugasDikerjakan }}, {{ $tugasTerlambat }}, {{ $tugasBelumDimulai }}],
         chart: {
             type: 'donut',
             height: 300,
             fontFamily: 'Inter, sans-serif'
         },
-        colors: ['#2dce89', '#ffc107', '#dc3545'],
-        labels: ['Selesai', 'Dikerjakan', 'Belum Dimulai'],
+        colors: ['#2dce89', '#ffc107', '#dc3545', '#5c92fe'],
+        labels: ['Selesai', 'Dikerjakan', 'Terlambat', 'Belum Dimulai'],
         legend: {
             show: false
         },
@@ -771,103 +753,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     new ApexCharts(document.querySelector("#chart-distribusi-beban-kerja"), distribusiBebanKerjaOptions).render();
-
-    // ========== CHART 2: Tren Aktivitas Harian (Area Chart) ==========
-    const trendAktivitasOptions = {
-        series: [{
-            name: 'Jumlah Laporan',
-            data: {!! json_encode($trendAktivitas) !!}
-        }],
-        chart: {
-            type: 'area',
-            height: 300,
-            fontFamily: 'Inter, sans-serif',
-            toolbar: {
-                show: false
-            },
-            zoom: {
-                enabled: false
-            }
-        },
-        colors: ['#5c92fe'],
-        dataLabels: {
-            enabled: false
-        },
-        stroke: {
-            curve: 'smooth',
-            width: 3
-        },
-        fill: {
-            type: 'gradient',
-            gradient: {
-                shadeIntensity: 1,
-                opacityFrom: 0.5,
-                opacityTo: 0.1,
-                stops: [0, 90, 100]
-            }
-        },
-        xaxis: {
-            categories: {!! json_encode($trendLabels) !!},
-            labels: {
-                style: {
-                    fontSize: '11px',
-                    colors: '#6c757d'
-                }
-            },
-            axisBorder: {
-                show: false
-            },
-            axisTicks: {
-                show: false
-            }
-        },
-        yaxis: {
-            labels: {
-                style: {
-                    fontSize: '11px',
-                    colors: '#6c757d'
-                },
-                formatter: function(val) {
-                    return Math.floor(val);
-                }
-            },
-            min: 0
-        },
-        grid: {
-            borderColor: '#e9ecef',
-            strokeDashArray: 4,
-            yaxis: {
-                lines: {
-                    show: true
-                }
-            },
-            xaxis: {
-                lines: {
-                    show: false
-                }
-            }
-        },
-        tooltip: {
-            y: {
-                formatter: function(val) {
-                    return val + ' laporan';
-                }
-            },
-            style: {
-                fontSize: '12px'
-            }
-        },
-        markers: {
-            size: 4,
-            colors: ['#fff'],
-            strokeColors: '#5c92fe',
-            strokeWidth: 2,
-            hover: {
-                size: 6
-            }
-        }
-    };
-    new ApexCharts(document.querySelector("#chart-tren-aktivitas"), trendAktivitasOptions).render();
 
 });
 </script>

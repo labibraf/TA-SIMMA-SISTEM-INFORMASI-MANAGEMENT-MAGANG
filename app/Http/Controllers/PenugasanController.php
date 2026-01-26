@@ -62,20 +62,45 @@ class PenugasanController extends Controller
                 ->get();
         }
         elseif ($user->isPeserta() && $user->peserta?->bagian_id) {
-            // Peserta: hanya lihat penugasan di bagian yang sama
+            // Peserta: tampilkan SEMUA tugas yang sudah di-assign (termasuk yang sudah dikerjakan)
+            $pesertaId = $user->peserta->id;
             $bagianId = $user->peserta->bagian_id;
 
-            $penugasans = Penugasan::where(function($q) use ($user, $bagianId) {
-                    $q->where('peserta_id', $user->peserta->id)
-                    ->orWhere(function($sub) use ($bagianId) {
+            $penugasans = Penugasan::where(function($q) use ($pesertaId, $bagianId) {
+                    // Tugas individu untuk peserta ini
+                    $q->where('peserta_id', $pesertaId);
+
+                    // Tugas divisi: tampilkan jika peserta ada di pivot table
+                    $q->orWhere(function($sub) use ($bagianId, $pesertaId) {
                         $sub->where('kategori', 'Divisi')
-                            ->where('bagian_id', $bagianId);
+                            ->where('bagian_id', $bagianId)
+                            // Pastikan peserta ini ada di pivot table
+                            ->whereHas('pesertas', function($pivot) use ($pesertaId) {
+                                $pivot->where('peserta_id', $pesertaId);
+                            });
                     });
                 })
                 ->with(['peserta.user', 'peserta.bagian', 'mentor.user', 'bagian', 'laporanHarian'])
                 ->orderBy('created_at', 'desc')
                 ->get();
         }
+
+        // Tambahkan property isGugur untuk setiap penugasan
+        $penugasans->each(function($item) {
+            $isOverdue = $item->deadline && now()->greaterThan($item->deadline->endOfDay());
+
+            // Tugas benar-benar selesai
+            if ($item->kategori === 'Divisi') {
+                $isSelesaiBetulan = ($item->is_approved == 1);
+            } else {
+                $latestLaporan = $item->laporanHarian->last();
+                $progress = $latestLaporan ? $latestLaporan->progres_tugas : 0;
+                $isSelesaiBetulan = ($item->is_approved == 1 || $progress == 100);
+            }
+
+            // GUGUR: deadline lewat DAN belum selesai
+            $item->isGugur = $isOverdue && !$isSelesaiBetulan;
+        });
 
         return view('Penugasan.index', compact('penugasans'));
     }
@@ -85,7 +110,7 @@ class PenugasanController extends Controller
         $mentor = auth()->user(); // user login
         $peserta = Peserta::with('user')
             ->where('bagian_id', $mentor->mentor->bagian_id)
-            ->aktifUntukForm()
+            ->aktifUntukForm() // Hanya peserta yang masih aktif (belum selesai magang)
             ->orderBy('id')
             ->get();
 
@@ -132,16 +157,40 @@ class PenugasanController extends Controller
         if (strtolower($request->kategori) === 'individu' && $request->peserta_id) {
             $peserta = Peserta::find($request->peserta_id);
             if ($peserta) {
+                // Validasi 1: Cek sisa waktu maksimal
                 $sisaWaktuMaksimal = $peserta->getSisaWaktuMaksimalAttribute();
                 if ($request->beban_waktu > $sisaWaktuMaksimal) {
                     return back()->withErrors([
                         'beban_waktu' => "Beban waktu tidak boleh melebihi sisa waktu maksimal peserta ({$sisaWaktuMaksimal} jam)."
                     ])->withInput();
                 }
+
+                // Validasi 2: Cek sisa jam kerja berdasarkan sisa hari magang
+                $sisaJamKerja = $peserta->sisa_jam_kerja;
+                if ($request->beban_waktu > $sisaJamKerja) {
+                    return back()->withErrors([
+                        'beban_waktu' => "Beban waktu ({$request->beban_waktu} jam) melebihi sisa jam kerja peserta ({$sisaJamKerja} jam / {$peserta->sisa_hari_kerja} hari kerja tersisa)."
+                    ])->withInput();
+                }
+            }
+
+            // Validasi anti-duplikasi untuk tugas individu
+            $existingTugas = Penugasan::where('judul_tugas', $request->judul_tugas)
+                ->where('peserta_id', $request->peserta_id)
+                ->where('mentor_id', optional(Auth::user()->mentor)->id)
+                ->whereDate('deadline', $request->deadline)
+                ->first();
+
+            if ($existingTugas) {
+                return back()->withErrors([
+                    'judul_tugas' => 'Tugas dengan judul yang sama sudah ada untuk peserta ini dengan deadline yang sama. Silakan gunakan judul yang berbeda atau ubah deadline.'
+                ])->withInput();
             }
         } elseif (strtolower($request->kategori) === 'divisi' && $request->peserta_ids) {
-            // Untuk tugas divisi, cek sisa waktu maksimal terbesar (maksimal yang diizinkan)
+            // Untuk tugas divisi, validasi sisa waktu
             $pesertas = Peserta::whereIn('id', $request->peserta_ids)->get();
+
+            // Validasi 1: Cek sisa waktu maksimal terbesar
             $maxSisaWaktu = $pesertas->max(function($peserta) {
                 return $peserta->getSisaWaktuMaksimalAttribute();
             });
@@ -149,6 +198,33 @@ class PenugasanController extends Controller
             if ($request->beban_waktu > $maxSisaWaktu) {
                 return back()->withErrors([
                     'beban_waktu' => "Beban waktu tidak boleh melebihi sisa waktu maksimal terbesar dari peserta yang dipilih ({$maxSisaWaktu} jam)."
+                ])->withInput();
+            }
+
+            // Validasi 2: Cek apakah ada peserta yang sisa jam kerjanya tidak cukup
+            $pesertaTidakCukup = $pesertas->filter(function($peserta) use ($request) {
+                return $peserta->sisa_jam_kerja < $request->beban_waktu;
+            });
+
+            if ($pesertaTidakCukup->count() > 0) {
+                $namaPeserta = $pesertaTidakCukup->pluck('nama_lengkap')->implode(', ');
+                return back()->withErrors([
+                    'beban_waktu' => "Beban waktu ({$request->beban_waktu} jam) terlalu besar untuk peserta: {$namaPeserta}. Mereka tidak memiliki cukup sisa hari kerja."
+                ])->withInput();
+            }
+
+            // Validasi anti-duplikasi untuk tugas divisi
+            $bagianId = optional(Auth::user()->mentor)->bagian_id;
+            $existingTugasDivisi = Penugasan::where('judul_tugas', $request->judul_tugas)
+                ->where('kategori', 'Divisi')
+                ->where('bagian_id', $bagianId)
+                ->where('mentor_id', optional(Auth::user()->mentor)->id)
+                ->whereDate('deadline', $request->deadline)
+                ->first();
+
+            if ($existingTugasDivisi) {
+                return back()->withErrors([
+                    'judul_tugas' => 'Tugas divisi dengan judul yang sama sudah ada untuk bagian ini dengan deadline yang sama. Silakan gunakan judul yang berbeda atau ubah deadline.'
                 ])->withInput();
             }
         }
@@ -170,9 +246,12 @@ class PenugasanController extends Controller
         // Handle multiple peserta
         if (strtolower($request->kategori) === 'divisi') {
             if ($request->has('select_all') && $request->select_all == '1') {
-                // Jika pilih semua
+                // Jika pilih semua - hanya peserta yang masih aktif (belum selesai magang)
                 $bagianId = optional(Auth::user()->mentor)->bagian_id;
-                $pesertas = Peserta::where('bagian_id', $bagianId)->pluck('id')->toArray();
+                $pesertas = Peserta::where('bagian_id', $bagianId)
+                    ->aktifUntukForm() // Filter peserta yang masih aktif
+                    ->pluck('id')
+                    ->toArray();
                 $validatedData['multiple_peserta_ids'] = $pesertas;
                 $validatedData['peserta_id'] = null; // Kosongkan untuk divisi
             } else {
@@ -193,10 +272,21 @@ class PenugasanController extends Controller
         if (strtolower($request->kategori) === 'divisi') {
             if ($request->has('select_all') && $request->select_all == '1') {
                 $bagianId = optional(Auth::user()->mentor)->bagian_id;
-                $pesertaIds = Peserta::where('bagian_id', $bagianId)->pluck('id')->toArray();
-                $penugasan->pesertasRelation()->sync($pesertaIds);
+                // Hanya assign peserta yang masih aktif (menggunakan scope aktifUntukForm)
+                $pesertaIds = Peserta::where('bagian_id', $bagianId)
+                    ->aktifUntukForm() // Filter peserta yang masih bisa menerima tugas
+                    ->pluck('id')
+                    ->toArray();
+                $penugasan->pesertas()->sync($pesertaIds);
             } else {
-                $penugasan->pesertasRelation()->sync($request->peserta_ids);
+                // Filter peserta menggunakan scope aktifUntukForm
+                $pesertaIds = $request->peserta_ids ?? [];
+                $pesertaAktif = Peserta::whereIn('id', $pesertaIds)
+                    ->aktifUntukForm() // Filter peserta yang masih bisa menerima tugas
+                    ->pluck('id')
+                    ->toArray();
+
+                $penugasan->pesertas()->sync($pesertaAktif);
             }
         }
 
@@ -219,19 +309,24 @@ class PenugasanController extends Controller
             return redirect()->route('penugasans.show', $penugasan->id);
         }
 
+        // Load relasi pesertas untuk penugasan divisi
+        $penugasan->load(['pesertas', 'peserta.user', 'bagian']);
+
         // Siapkan query default kosong
         $pesertas = collect();
 
         // Mentor hanya boleh edit jika bagian_id cocok
         if ($user->isMentor() && optional($user->mentor)->bagian_id == $penugasan->bagian_id) {
-            $pesertas = Peserta::where('bagian_id', $user->mentor->bagian_id)
+            $pesertas = Peserta::with('user')
+                ->where('bagian_id', $user->mentor->bagian_id)
                 ->aktifUntukForm()
                 ->orderBy('id')
                 ->get();
         }
         // Admin bebas akses semua
         elseif ($user->isAdmin()) {
-            $pesertas = Peserta::aktifUntukForm()
+            $pesertas = Peserta::with('user')
+                ->aktifUntukForm()
                 ->orderBy('id')
                 ->get();
         }
@@ -240,7 +335,23 @@ class PenugasanController extends Controller
             abort(403, 'AKSES DITOLAK: ANDA TIDAK MEMILIKI HAK AKSES.');
         }
 
-        return view('Penugasan.edit', compact('penugasan', 'pesertas'));
+        // Hitung apakah tugas gugur/telat
+        $isOverdue = $penugasan->deadline && now()->greaterThan(\Carbon\Carbon::parse($penugasan->deadline)->endOfDay());
+
+        // Cek apakah tugas benar-benar selesai
+        if ($penugasan->kategori === 'Divisi') {
+            $isSelesaiBetulan = ($penugasan->is_approved == 1);
+        } else {
+            // Untuk individu, cek progress dari laporan terakhir
+            $latestLaporan = $penugasan->laporanHarian()->where('peserta_id', $penugasan->peserta_id)->latest('created_at')->first();
+            $progress = $latestLaporan ? $latestLaporan->progres_tugas : 0;
+            $isSelesaiBetulan = ($penugasan->is_approved == 1 || $progress == 100);
+        }
+
+        // GUGUR: deadline lewat DAN belum selesai
+        $isGugur = $isOverdue && !$isSelesaiBetulan;
+
+        return view('Penugasan.edit', compact('penugasan', 'pesertas', 'isGugur'));
     }
 
     public function update(Request $request, Penugasan $penugasan)
@@ -328,6 +439,37 @@ class PenugasanController extends Controller
 
         $validatedData = $request->validate($rules, $messages);
 
+        // Validasi anti-duplikasi saat update
+        if ($request->kategori == 'Individu' && $request->peserta_id) {
+            $existingTugas = Penugasan::where('judul_tugas', $request->judul_tugas)
+                ->where('peserta_id', $request->peserta_id)
+                ->where('mentor_id', optional(Auth::user()->mentor)->id)
+                ->whereDate('deadline', $request->deadline)
+                ->where('id', '!=', $penugasan->id) // Exclude current record
+                ->first();
+
+            if ($existingTugas) {
+                return back()->withErrors([
+                    'judul_tugas' => 'Tugas dengan judul yang sama sudah ada untuk peserta ini dengan deadline yang sama. Silakan gunakan judul yang berbeda atau ubah deadline.'
+                ])->withInput();
+            }
+        } elseif ($request->kategori == 'Divisi') {
+            $bagianId = optional(Auth::user()->mentor)->bagian_id;
+            $existingTugasDivisi = Penugasan::where('judul_tugas', $request->judul_tugas)
+                ->where('kategori', 'Divisi')
+                ->where('bagian_id', $bagianId)
+                ->where('mentor_id', optional(Auth::user()->mentor)->id)
+                ->whereDate('deadline', $request->deadline)
+                ->where('id', '!=', $penugasan->id) // Exclude current record
+                ->first();
+
+            if ($existingTugasDivisi) {
+                return back()->withErrors([
+                    'judul_tugas' => 'Tugas divisi dengan judul yang sama sudah ada untuk bagian ini dengan deadline yang sama. Silakan gunakan judul yang berbeda atau ubah deadline.'
+                ])->withInput();
+            }
+        }
+
         // 3. Simpan file jika ada
         if ($request->hasFile('file')) {
             // Hapus file lama jika ada
@@ -367,9 +509,9 @@ class PenugasanController extends Controller
             if ($request->has('select_all') && $request->select_all == '1') {
                 $bagianId = optional(Auth::user()->mentor)->bagian_id;
                 $pesertaIds = Peserta::where('bagian_id', $bagianId)->pluck('id')->toArray();
-                $penugasan->pesertasRelation()->sync($pesertaIds);
+                $penugasan->pesertas()->sync($pesertaIds);
             } else {
-                $penugasan->pesertasRelation()->sync($request->peserta_ids);
+                $penugasan->pesertas()->sync($request->peserta_ids);
             }
         }
 
@@ -410,7 +552,7 @@ class PenugasanController extends Controller
             // Hitung progress berdasarkan kategori penugasan
             if ($penugasan->kategori === 'Divisi') {
                 // Untuk tugas divisi: hitung rata-rata dari progress tertinggi setiap peserta
-                $pesertaList = $penugasan->pesertas();
+                $pesertaList = $penugasan->getAllPesertas();
                 $totalProgress = 0;
                 $jumlahPeserta = $pesertaList->count();
 
@@ -517,7 +659,7 @@ class PenugasanController extends Controller
 
         // Update bobot_tercapai peserta jika status approve berubah
         if ($approveChanged) {
-            $pesertasToUpdate = $penugasan->pesertas();
+            $pesertasToUpdate = $penugasan->getAllPesertas();
             foreach ($pesertasToUpdate as $peserta) {
                 if ($peserta && method_exists($peserta, 'updateWaktuTugasTercapai')) {
                     $peserta->updateWaktuTugasTercapai();
@@ -545,7 +687,7 @@ class PenugasanController extends Controller
         // Ambil laporan harian terkait dengan penugasan ini
         $laporanHarians = LaporanHarian::where('penugasan_id', $id)
             ->with(['peserta.user', 'penugasan'])
-            ->orderBy('created_at', 'asc')
+            ->orderBy('created_at', 'desc')
             ->get();
 
         // Inisialisasi variabel
@@ -556,7 +698,7 @@ class PenugasanController extends Controller
         // Hitung progress berdasarkan kategori penugasan
         if ($penugasan->kategori === 'Divisi') {
             // Untuk penugasan Divisi: hitung rata-rata dari progress tertinggi setiap peserta
-            $pesertaList = $penugasan->pesertas();
+            $pesertaList = $penugasan->pesertas()->get();
             $totalProgress = 0;
             $jumlahPeserta = $pesertaList->count();
 
@@ -587,13 +729,26 @@ class PenugasanController extends Controller
             $latestLaporan = $laporanHarians->where('progres_tugas', $currentProgress)->last();
         }
 
+        // Hitung isGugur
+        $isOverdue = $penugasan->deadline && now()->greaterThan($penugasan->deadline->endOfDay());
+
+        if ($penugasan->kategori === 'Divisi') {
+            $isSelesaiBetulan = ($penugasan->is_approved == 1);
+        } else {
+            $isSelesaiBetulan = ($penugasan->is_approved == 1 || $currentProgress == 100);
+        }
+
+        $isGugur = $isOverdue && !$isSelesaiBetulan;
+
         return view('Penugasan.show', compact(
             'penugasan',
             'laporanHarians',
             'currentProgress',
             'latestLaporan',
             'pesertaList',
-            'rataRataProgressDivisi'
+            'rataRataProgressDivisi',
+            'isGugur',
+            'isSelesaiBetulan'
         ));
     }
 

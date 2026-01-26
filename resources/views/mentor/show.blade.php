@@ -105,7 +105,7 @@
                     <h5 class="card-title mb-0">Peserta Bimbingan</h5>
                 </div>
                 <div class="card-body">
-                    @if($mentor->peserta->isEmpty())
+                    @if($mentor->pesertas->isEmpty())
                         <div class="alert alert-info text-center">
                             <i class="ti ti-info-circle"></i> Belum ada peserta yang dibimbing.
                         </div>
@@ -122,7 +122,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($mentor->peserta as $peserta)
+                                    @foreach($mentor->pesertas as $peserta)
                                         <tr>
                                             <td>{{ $loop->iteration }}</td>
                                             <td>
@@ -137,7 +137,7 @@
                                                     ({{ \Carbon\Carbon::parse($peserta->tanggal_mulai_magang)->diffInDays($peserta->tanggal_selesai_magang) + 1 }} hari)
                                                 </small>
                                             </td>
-                                            <td>
+                                            <td class="text-orange-900">
                                                 @php
                                                     $progressPercentage = 0;
                                                     $bisaLaporanAkhir = false;
@@ -149,9 +149,9 @@
                                                 @endphp
 
                                                 @if($bisaLaporanAkhir)
-                                                    <span class="badge bg-success">Siap Laporan Akhir</span>
+                                                    <span class="bg-green-400 text-white p-2 rounded-3">Siap Laporan Akhir</span>
                                                 @else
-                                                    <span class="badge bg-warning">Proses ({{ $progressPercentage }}%)</span>
+                                                    <span class="bg-yellow-400 p-2 rounded-3">Proses ({{ $progressPercentage }}%)</span>
                                                 @endif
                                             </td>
                                         </tr>
@@ -209,13 +209,13 @@
                 <div class="card-body">
                     <div class="row text-center">
                         <div class="col-6 border-end">
-                            <h4 class="mb-1">{{ $mentor->peserta->count() }}</h4>
+                            <h4 class="mb-1">{{ $mentor->pesertas->count() }}</h4>
                             <p class="text-muted mb-0">Total Peserta</p>
                         </div>
                         <div class="col-6">
                             @php
                                 $selesaiCount = 0;
-                                foreach($mentor->peserta as $peserta) {
+                                foreach($mentor->pesertas as $peserta) {
                                     if($peserta->target_waktu_tugas > 0 && $peserta->waktu_tugas_tercapai >= $peserta->target_waktu_tugas) {
                                         $selesaiCount++;
                                     }

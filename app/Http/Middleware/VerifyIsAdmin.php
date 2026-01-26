@@ -23,14 +23,34 @@ class VerifyIsAdmin
             // Jika belum login, arahkan ke halaman login
             return redirect()->route('login');
         }
-        $role_id = $request->user()->role_id;
-        
-        if (Auth::id() != 1 && $role_id != Role::where('role_name', 'Admin')->first()->id) {
+
+        $user = $request->user();
+        $role_id = $user->role_id;
+
+        // 2. Validasi apakah user memiliki role_id
+        if (empty($role_id)) {
+            Alert::error('Akses Ditolak', 'Akun Anda belum memiliki role. Silakan hubungi administrator.');
+            Auth::logout();
+            return redirect()->route('login');
+        }
+
+        // 3. Cek role Admin
+        $adminRole = Role::where('role_name', 'Admin')->first();
+
+        // Jika role Admin tidak ditemukan di database, tangani error
+        if (!$adminRole) {
+            Alert::error('Error Sistem', 'Role Admin tidak ditemukan. Hubungi administrator.');
+            return redirect()->route('home');
+        }
+
+        // 4. Cek apakah user adalah admin (id 1 atau memiliki role Admin)
+        if (Auth::id() != 1 && $role_id != $adminRole->id) {
             Alert::error('Akses Ditolak', 'Anda tidak memiliki izin.');
             return redirect()->route('home');
         }
+
         return $next($request);
-    
+
 
         // $role_id = $request->user()->role_id;
         // $Adminid = Role::where('role_name', 'Admin')->first()->id;

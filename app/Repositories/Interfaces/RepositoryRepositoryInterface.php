@@ -75,10 +75,7 @@ interface RepositoryRepositoryInterface
      */
     public function unpublish($id);
 
-    /**
-     * Increment views counter
-     */
-    public function incrementViews($id);
+
 
     /**
      * Search repository berdasarkan keyword
