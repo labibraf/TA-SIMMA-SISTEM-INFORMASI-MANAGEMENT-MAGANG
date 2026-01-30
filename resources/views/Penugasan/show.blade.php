@@ -172,14 +172,24 @@
                                             <span class="badge bg-danger">Belum</span>
                                         @endif
                                     @else
-                                        <form action="{{ route('penugasan.updateApprove', $penugasan->id) }}" method="POST" class="d-inline">
-                                            @csrf
-                                            @method('PUT')
-                                            <select name="is_approved" class="form-select form-select-sm" style="width: auto; display: inline-block;" onchange="this.form.submit()">
-                                                <option value="0" {{ $penugasan->is_approved == 0 ? 'selected' : '' }}>Belum</option>
-                                                <option value="1" {{ $penugasan->is_approved == 1 ? 'selected' : '' }}>Iya</option>
-                                            </select>
-                                        </form>
+                                        @if(isset($currentProgress) && $currentProgress < 100 && $penugasan->is_approved == 0)
+                                            {{-- Progress belum 100%, tidak bisa approve --}}
+                                            <span class="badge bg-secondary">Belum</span>
+                                            <br>
+                                            <small class="text-danger">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                                Tidak dapat di-approve. Progress harus 100% terlebih dahulu.
+                                            </small>
+                                        @else
+                                            <form action="{{ route('penugasan.updateApprove', $penugasan->id) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                @method('PUT')
+                                                <select name="is_approved" class="form-select form-select-sm" style="width: auto; display: inline-block;" onchange="this.form.submit()">
+                                                    <option value="0" {{ $penugasan->is_approved == 0 ? 'selected' : '' }}>Belum</option>
+                                                    <option value="1" {{ $penugasan->is_approved == 1 ? 'selected' : '' }}>Iya</option>
+                                                </select>
+                                            </form>
+                                        @endif
                                     @endif
                                 </div>
                             </div>
@@ -294,7 +304,12 @@
                                     @method('PUT')
                                     <input type="hidden" name="is_approved" value="1">
                                     <div class="mb-2">
-                                        <textarea name="feedback" class="form-control" rows="3" placeholder="Masukkan feedback...">{{ $penugasan->feedback }}</textarea>
+                                        <textarea name="feedback" class="form-control @error('feedback') is-invalid @enderror" rows="3" placeholder="Masukkan feedback..." required>{{ old('feedback', $penugasan->feedback) }}</textarea>
+                                        @error('feedback')
+                                            <div class="invalid-feedback">
+                                                {{ $message }}
+                                            </div>
+                                        @enderror
                                     </div>
                                     <button type="submit" class="btn btn-primary btn-sm">
                                         @if($penugasan->feedback)

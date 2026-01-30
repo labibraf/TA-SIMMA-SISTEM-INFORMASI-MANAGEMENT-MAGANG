@@ -626,28 +626,83 @@ class PenugasanController extends Controller
             abort(403, 'AKSES DITOLAK');
         }
 
-        $request->validate([
+        // Hitung current progress untuk validasi
+        $currentProgress = 0;
+        if ($penugasan->kategori === 'Divisi') {
+            // Untuk penugasan Divisi: hitung rata-rata dari progress tertinggi setiap peserta
+            $pesertaList = $penugasan->pesertas()->get();
+            $totalProgress = 0;
+            $jumlahPeserta = $pesertaList->count();
+
+            if ($jumlahPeserta > 0) {
+                foreach ($pesertaList as $peserta) {
+                    $maxProgress = LaporanHarian::where('penugasan_id', $id)
+                        ->where('peserta_id', $peserta->id)
+                        ->max('progres_tugas') ?? 0;
+                    $totalProgress += $maxProgress;
+                }
+                $currentProgress = $totalProgress / $jumlahPeserta;
+            }
+        } else {
+            // Untuk penugasan Individu: ambil progress tertinggi dari laporan
+            $currentProgress = LaporanHarian::where('penugasan_id', $id)->max('progres_tugas') ?? 0;
+        }
+
+        // Validasi: Tidak bisa approve jika progress belum 100%
+        if ($request->has('is_approved') && $request->is_approved == 1 && $currentProgress < 100) {
+            Alert::error('Gagal', 'Tugas tidak dapat di-approve karena progress belum mencapai 100%. Progress saat ini: ' . number_format($currentProgress, 1) . '%');
+            return back();
+        }
+
+        // Validasi dasar
+        $rules = [
             'is_approved' => 'sometimes|in:0,1',
-            'feedback' => 'nullable|string|max:500',
             'catatan' => 'nullable|string|max:500'
+        ];
+
+        // Feedback hanya required jika ada input feedback dan status approved
+        if ($request->has('feedback') && $request->filled('feedback')) {
+            $rules['feedback'] = 'string|max:500';
+        } elseif ($request->has('feedback') && !$request->filled('feedback') && $request->is_approved == 1) {
+            // Jika mengirim feedback kosong saat approve, wajibkan feedback
+            $rules['feedback'] = 'required|string|max:500';
+        }
+
+        $request->validate($rules, [
+            'feedback.required' => 'Feedback harus diisi, tidak boleh kosong.',
+            'feedback.max' => 'Feedback maksimal 500 karakter.'
         ]);
 
         $approveChanged = false;
+        $message = '';
 
         // Update approve status jika ada
         if ($request->has('is_approved')) {
             $oldApproval = $penugasan->is_approved;
+            $newApproval = $request->is_approved;
+
             $penugasan->update([
-                'is_approved' => $request->is_approved
+                'is_approved' => $newApproval
             ]);
-            $approveChanged = ($oldApproval != $request->is_approved);
+            $approveChanged = ($oldApproval != $newApproval);
+
+            // Jika diubah ke "belum" (unapprove), hapus feedback
+            if ($newApproval == 0) {
+                $penugasan->update([
+                    'feedback' => null
+                ]);
+                $message = 'Status approve diubah menjadi belum';
+            } else {
+                $message = 'Status approve berhasil diperbarui';
+            }
         }
 
-        // Update feedback jika ada
-        if ($request->has('feedback')) {
+        // Update feedback jika ada dan status approved
+        if ($request->has('feedback') && $request->filled('feedback') && $penugasan->is_approved == 1) {
             $penugasan->update([
                 'feedback' => $request->feedback
             ]);
+            $message = 'Feedback berhasil disimpan';
         }
 
         // Update catatan jika ada
@@ -655,6 +710,7 @@ class PenugasanController extends Controller
             $penugasan->update([
                 'catatan' => $request->catatan
             ]);
+            $message = 'Catatan berhasil disimpan';
         }
 
         // Update bobot_tercapai peserta jika status approve berubah
@@ -667,13 +723,9 @@ class PenugasanController extends Controller
             }
         }
 
-        // Buat pesan sesuai aksi
-        $message = 'Status approve berhasil diperbarui';
-        if ($request->has('feedback')) {
-            $message = 'Feedback berhasil disimpan';
-        }
-        if ($request->has('catatan')) {
-            $message = 'Catatan berhasil disimpan';
+        // Default message jika belum ada
+        if (empty($message)) {
+            $message = 'Data berhasil diperbarui';
         }
 
         Alert::success('Success', $message);

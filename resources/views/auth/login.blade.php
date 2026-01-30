@@ -74,7 +74,12 @@
             </div>
             <div class="form-group mb-3">
               <label class="form-label">Password</label>
-              <input type="password" class="form-control" placeholder="Password" name="password" required autocomplete="off">
+              <div class="position-relative">
+                <input type="password" class="form-control" placeholder="Password" name="password" id="password" required autocomplete="off">
+                <span class="position-absolute top-50 end-0 translate-middle-y pe-3" style="cursor: pointer;" onclick="togglePassword()">
+                  <i class="feather icon-eye-off" id="toggleIcon"></i>
+                </span>
+              </div>
             </div>
             <div class="d-grid mt-4">
               <button type="submit" class="btn btn-primary">Login</button>
@@ -119,7 +124,22 @@
 
   <script>font_change("poppins");</script>
 
+  <script>
+    function togglePassword() {
+      const passwordInput = document.getElementById('password');
+      const toggleIcon = document.getElementById('toggleIcon');
 
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleIcon.classList.remove('icon-eye-off');
+        toggleIcon.classList.add('icon-eye');
+      } else {
+        passwordInput.type = 'password';
+        toggleIcon.classList.remove('icon-eye');
+        toggleIcon.classList.add('icon-eye-off');
+      }
+    }
+  </script>
 
 </body>
 <!-- [Body] end -->
