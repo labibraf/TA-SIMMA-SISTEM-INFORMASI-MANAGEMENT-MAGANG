@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('pesertas', function (Blueprint $table) {
             $table->integer('target_waktu_tugas')->nullable()->default(0)->after('tipe_magang');
-            $table->integer('waktu_tugas_tercapai')->nullable()->default(0)->after('target_bobot');
+            $table->integer('waktu_tugas_tercapai')->nullable()->default(0)->after('target_waktu_tugas');
         });
     }
 
