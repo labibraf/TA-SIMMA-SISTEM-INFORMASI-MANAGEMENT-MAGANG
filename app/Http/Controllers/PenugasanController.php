@@ -265,6 +265,12 @@ class PenugasanController extends Controller
             $validatedData['multiple_peserta_ids'] = null; // Kosongkan untuk individu
         }
 
+        // Rename field: beban_waktu (nama di form HTML) → bobot_tugas (nama kolom di DB)
+        if (isset($validatedData['beban_waktu'])) {
+            $validatedData['bobot_tugas'] = $validatedData['beban_waktu'];
+            unset($validatedData['beban_waktu']);
+        }
+
         // Simpan penugasan
         $penugasan = Penugasan::create($validatedData);
 

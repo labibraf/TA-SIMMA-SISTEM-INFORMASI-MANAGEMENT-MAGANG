@@ -125,7 +125,7 @@ class MentorController extends Controller
         $bagianId = (int) $bagianId; // Konversi ke integer
 
         // Ambil mentor berdasarkan bagian_id
-        $mentors = Mentor::where('bagian_id', $bagianId)->get(['id', 'nama_lengkap']);
+        $mentors = Mentor::where('bagian_id', $bagianId)->get(['id', 'nama_mentor']);
 
         // Kembalikan respons JSON
         return response()->json($mentors);

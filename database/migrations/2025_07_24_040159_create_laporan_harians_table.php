@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::create('laporan_harians', function (Blueprint $table) {
             $table->id();
             $table->foreignId('peserta_id')->constrained('pesertas')->cascadeOnDelete();
-            $table->foreignId('penugasan_id')->constrained('penugasans')->cascadeOnDelete();
+            $table->foreignId('penugasan_id');
             $table->text('deskripsi_kegiatan')->nullable();
             $table->enum('status_tugas', ['Belum', 'Dikerjakan', 'Selesai'])->default('Belum');
             $table->unsignedTinyInteger('progres_tugas')->default(0);

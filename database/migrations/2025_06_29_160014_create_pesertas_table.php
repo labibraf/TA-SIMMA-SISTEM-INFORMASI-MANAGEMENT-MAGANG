@@ -10,8 +10,6 @@ return new class extends Migration
     {
         Schema::create('pesertas', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('mentor_id')->nullable()->after('bagian_id');
-            $table->foreign('mentor_id')->references('id')->on('mentors')->onDelete('set null');
             $table->string('nama_lengkap');
             $table->string('email');
             $table->string('no_telepon');
