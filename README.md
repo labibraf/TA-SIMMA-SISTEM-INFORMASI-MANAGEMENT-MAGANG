@@ -97,7 +97,7 @@ Dengan **SIMMA**, seluruh proses manajemen magang dapat dilakukan secara digital
 - **Database**: MySQL
 - **ORM**: Eloquent
 - **Authentication**: Laravel Breeze
-- **Storage**: Local Storage / Cloud (AWS S3)
+- **Storage**: Local Storage
 
 ### Frontend
 - **Template**: Mantis Bootstrap Admin
@@ -157,8 +157,8 @@ Repository -> LaporanAkhir, Peserta (belongsTo)
 
 1. **Clone Repository**
    ```bash
-   git clone https://github.com/labibraf/project-ta3.git
-   cd project-ta3
+   git clone https://github.com/labibraf/TA-SIMMA-SISTEM-INFORMASI-MANAGEMENT-MAGANG
+   cd TA-SIMMA-SISTEM-INFORMASI-MANAGEMENT-MAGANG
    ```
 
 2. **Install Dependencies**
